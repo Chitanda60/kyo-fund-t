@@ -575,6 +575,14 @@ export const useStorageStore = create((set, get) => ({
     } catch (e) {
       return val;
     }
+  },
+
+  /**
+   * 枚举 localStorage 的全部键（用于按前缀清理历史键等场景）
+   */
+  keys: () => {
+    if (typeof window === 'undefined') return [];
+    return Object.keys(window.localStorage);
   }
 }));
 
@@ -583,5 +591,6 @@ export const storageStore = {
   setItem: (key, val) => useStorageStore.getState().setItem(key, val),
   getItem: (key, def) => useStorageStore.getState().getItem(key, def),
   removeItem: (key) => useStorageStore.getState().removeItem(key),
-  clear: () => useStorageStore.getState().clear()
+  clear: () => useStorageStore.getState().clear(),
+  keys: () => useStorageStore.getState().keys()
 };

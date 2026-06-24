@@ -20,12 +20,11 @@ export default function Announcement() {
     // 清理历史 ANNOUNCEMENT_KEY
     const keysToRemove = [];
     if (typeof window !== 'undefined') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      storageStore.keys().forEach((key) => {
         if (key && key.startsWith('hasClosedAnnouncement_v') && key !== ANNOUNCEMENT_KEY) {
           keysToRemove.push(key);
         }
-      }
+      });
     }
     keysToRemove.forEach((k) => storageStore.removeItem(k));
 

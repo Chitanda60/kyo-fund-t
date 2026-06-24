@@ -1051,6 +1051,7 @@ export default function HomePage() {
         isLoggingOutRef.current = true;
         await supabase.auth.signOut({ scope: 'local' });
         try {
+          // 例外：Supabase 会话键清理（auth SDK 持有 sb-*-auth-token，非 app 业务存储），保留直连枚举。
           const storageKeys = Object.keys(localStorage);
           storageKeys.forEach((key) => {
             if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
@@ -1158,6 +1159,7 @@ export default function HomePage() {
         await supabase.auth.signOut({ scope: 'local' });
       } catch {}
       try {
+        // 例外：Supabase 会话键清理（auth SDK 持有 sb-*-auth-token，非 app 业务存储），保留直连枚举。
         const storageKeys = Object.keys(localStorage);
         storageKeys.forEach((key) => {
           if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
@@ -1793,9 +1795,9 @@ export default function HomePage() {
 
       if (typeof window !== 'undefined') {
         try {
-          const saved = JSON.parse(localStorage.getItem('rtf_unadded_ds') || '{}');
+          const saved = storageStore.getItem('rtf_unadded_ds', {});
           saved[fundCode] = sourceId;
-          localStorage.setItem('rtf_unadded_ds', JSON.stringify(saved));
+          storageStore.setItem('rtf_unadded_ds', JSON.stringify(saved));
         } catch {}
         window.dispatchEvent(new CustomEvent('rtf_unadded_datasource_change', { detail: { fundCode, sourceId } }));
       }

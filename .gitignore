@@ -86,10 +86,10 @@ fabric.properties
 .idea/*
 .husky/_/
 
-# Sentry Config File
-.env.sentry-build-plugin
-
 # CLI
 cli/
 .agents/
 /CLI.md
+
+# Playwright MCP browser artifacts (screenshots, snapshots)
+.playwright-mcp/

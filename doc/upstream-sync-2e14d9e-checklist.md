@@ -47,11 +47,11 @@ Components: AllSectorsModal, Announcement, ClientErrorBoundary, DcaModal, FundCa
 - `npm run lint`: PASS (0 errors, 34 warnings) — 2026-06-24
 - `npm run build`: PASS (routes /, /market, /mine) — 2026-06-24
 
-## Final
+## Final (2026-06-24)
 
-- `npm run lint`: TODO
-- `npm run build`: TODO
-- Manual route checks: TODO
-- Manual data source checks: TODO
-- Manual import checks: TODO
-- Skipped upstream changes (documented): TODO
+- `npm run lint`: PASS — 0 errors, 41 warnings (baseline 34; +7 are pre-existing exhaustive-deps in the ported upstream files).
+- `npm run build`: PASS — prerenders /, /market, /mine.
+- Routes render with 0 console errors; app version shows 2.3.1.
+- Ported (committed): best-source APIs, auto data-source, import auto-source + recommended tags, data-source column/badges, pinned sort, delete-keeps-earnings, group-holdings seed removal, cumulative net value charts + client error handling, PC width clamp + table drag, group-dropdown/width settings store+modal+save wiring, version 2.3.1, supabase RPC schema.
+- Supabase-dependent features (auto-source/recommended-tags): code ported + degrade safely; functional verification pending RPC deploy (`doc/supabase.sql` §4) + data.
+- **Deferred (documented in `doc/upstream-sync.md`):** HomePageContent group-dropdown tab rendering + tab-overflow scroll buttons; `.name-cell`/`.tabs-scroll-*` CSS merge into `app/styles/components.css`.

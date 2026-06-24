@@ -11,12 +11,33 @@ download/real-time-fund
 Current baseline:
 
 ```text
-ffaf4b090960ecc715a32556bc02b513cce07159
-feat：悬浮框字体大小调整
-2026-06-17 17:25:47 +0800
+2e14d9e3a3617a228fa4c28305b3b5408a93a43e
+feat：分组下拉宽度调整
+2026-06-24 09:52:09 +0800
 ```
 
-This baseline corresponds to the current repository's first commit:
+The 2.3.1 sync (`ffaf4b0..2e14d9e`) was ported into the refactored architecture
+on 2026-06-24 (see `doc/upstream-sync-2e14d9e-checklist.md` and the `feat:`/`fix:`
+commits). Ported: best-source cached APIs, auto data-source selection, import
+auto-source + recommended tags, data-source column/badges, pinned sort,
+delete-fund-keeps-earnings, removal of group-holdings seeding, cumulative net
+value charts, client error handling, PC width clamp, group-dropdown/width
+settings store+modal+save wiring, version 2.3.1.
+
+**Deferred from this sync (UI polish — track before next sync):**
+
+- HomePageContent: render group tabs as a dropdown when `showGroupDropdown` is on,
+  and the tab-overflow scroll buttons (`scrollAreaRef`/`hasTabOverflow` + Resize/
+  MutationObserver in AppShell). The setting saves/round-trips; only the home
+  tab-bar rendering is not yet rewritten.
+- CSS: map upstream `app/globals.css` `.table-row-scroll .name-cell` PC-tag styles
+  and `.tabs`/`.tabs-scroll-*` rules into `app/styles/components.css` (a real merge,
+  not append — the upstream change modifies the existing `.tabs` rule).
+- Supabase: deploy `get_fund_best_source` / `get_fund_recommended_tags` (SQL added
+  to `doc/supabase.sql` §4) and populate data, to make auto-source/recommended-tags
+  functional (code is in and degrades safely until then).
+
+The previous baseline was `ffaf4b0` (the current repository's first commit):
 
 ```text
 be6cfa56ab2970f220a7f5efa2f90241b70b3c76

@@ -228,12 +228,13 @@ From `env.example`:
 - The recorded upstream baseline commit is:
 
 ```text
-ffaf4b090960ecc715a32556bc02b513cce07159
-feat：悬浮框字体大小调整
-2026-06-17 17:25:47 +0800
+2e14d9e3a3617a228fa4c28305b3b5408a93a43e
+feat：分组下拉宽度调整
+2026-06-24 09:52:09 +0800
 ```
 
-- This baseline was verified by comparing 190 project files from current initial commit `be6cfa5` against `download/real-time-fund` while excluding AI/IDE/docs noise (`.agent/`, `.claude/`, `.cursor/`, `.trae/`, `.idea/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`). Result: `190/190` matching project file blobs.
+- The 2.3.1 range `ffaf4b0..2e14d9e` was ported on 2026-06-24 (see `doc/upstream-sync-2e14d9e-checklist.md` and `doc/upstream-sync.md`). A few UI-polish items are deferred and listed in `doc/upstream-sync.md` (home group-dropdown tab rendering + tab-overflow scroll buttons; `.name-cell`/`.tabs-scroll-*` CSS merge into `app/styles/components.css`; deploying the two Supabase RPCs).
+- The original baseline `ffaf4b0` was verified by comparing 190 project files from the repo's first commit `be6cfa5` against `download/real-time-fund` (excluding AI/IDE/docs noise): `190/190` matching blobs.
 - Future upstream update workflow: compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, then port relevant changes into the current refactored architecture.
 - Do not directly copy upstream files over current files; current project has route-backed tabs, `AppShell`, split fund services, feature hooks, unified `storageStore`, and split CSS.
 - After successfully porting upstream changes, update `doc/upstream-sync.md` and this baseline only when the current project has fully absorbed that upstream range.

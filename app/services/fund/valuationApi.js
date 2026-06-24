@@ -279,10 +279,20 @@ export const fetchQdiiValuationFromSupabase = async (code) => {
  * @param {number} actualZzl - 实际涨跌幅（百分比，如 1.23 表示 +1.23%）
  * @returns {Promise<{ bestSource: number|null, isYesterdayAccuracy: boolean, isTodayAccuracy: boolean, diffs: Object<string,number>, diff?: number }|null>}
  */
+// 数据源名称 -> 数值 id（与 FundDataSourceSelector 等使用的 id 对齐）。
+const SOURCE_NAME_TO_ID = { fundgz: 1, sina_ds2: 2, sina_ds3: 3 };
+
 export async function fetchBestValuationSource(code, jzrq, actualZzl) {
   if (!isSupabaseConfigured || !supabase?.functions?.invoke) return null;
   const c = code != null ? String(code).trim() : '';
   if (!c || !jzrq || !isNumber(actualZzl) || !Number.isFinite(actualZzl)) return null;
+
+  const qc = getQueryClient();
+  const cacheKey = qk.bestValuationSource(c, jzrq, actualZzl);
+  const cached = qc.getQueryData(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
 
   try {
     const { data, error } = await withRetry(() =>
@@ -292,9 +302,90 @@ export async function fetchBestValuationSource(code, jzrq, actualZzl) {
     );
 
     if (error || !data?.success) return null;
-    return data.data || null;
+    const res = data.data || null;
+    qc.setQueryData(cacheKey, res, { staleTime: 60 * 60 * 1000 });
+    return res;
   } catch (e) {
     return null;
+  }
+}
+
+/**
+ * 获取单只基金的最佳估值数据源（Supabase RPC `get_fund_best_source`），结果缓存 1 小时。
+ * Supabase 未配置或函数未部署时安全返回 null。
+ * @param {string} fundCode
+ * @returns {Promise<number|null>}
+ */
+export async function fetchFundBestSource(fundCode) {
+  if (!isSupabaseConfigured) return null;
+  const code = fundCode != null ? String(fundCode).trim() : '';
+  if (!code) return null;
+
+  const qc = getQueryClient();
+  const cacheKey = qk.fundBestSource(code);
+  const cached = qc.getQueryData(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('get_fund_best_source', {
+      p_fund_code: code
+    });
+    if (error || !data?.source) return null;
+    const res = SOURCE_NAME_TO_ID[data.source] ?? null;
+    if (res != null) {
+      qc.setQueryData(cacheKey, res, { staleTime: 60 * 60 * 1000 });
+    }
+    return res;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 批量获取多只基金的最佳数据源（Supabase RPC `get_fund_best_source` with `p_fund_codes`）。
+ * 命中缓存的跳过请求；返回 { [code]: sourceId }。Supabase 未配置时返回 {}。
+ * @param {string[]} fundCodes
+ * @returns {Promise<Record<string, number>>}
+ */
+export async function fetchFundsBestSources(fundCodes) {
+  if (!isSupabaseConfigured || !isArray(fundCodes) || fundCodes.length === 0) return {};
+
+  const qc = getQueryClient();
+  const result = {};
+  const missingCodes = [];
+
+  for (const c of fundCodes) {
+    const code = c != null ? String(c).trim() : '';
+    if (!code) continue;
+    const cached = qc.getQueryData(qk.fundBestSource(code));
+    if (cached !== undefined) {
+      result[code] = cached;
+    } else {
+      missingCodes.push(code);
+    }
+  }
+
+  if (missingCodes.length === 0) return result;
+
+  try {
+    const { data, error } = await supabase.rpc('get_fund_best_source', {
+      p_fund_codes: missingCodes
+    });
+    if (error || !data) return result;
+
+    // 返回的 data 类似 { "110022": "sina_ds2", "000001": "fundgz" }
+    Object.entries(data).forEach(([code, sourceName]) => {
+      const id = SOURCE_NAME_TO_ID[sourceName];
+      if (id != null) {
+        result[code] = id;
+        qc.setQueryData(qk.fundBestSource(code), id, { staleTime: 60 * 60 * 1000 });
+      }
+    });
+    return result;
+  } catch {
+    return result;
   }
 }
 

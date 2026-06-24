@@ -65,9 +65,9 @@ Use this checklist after each refactor task that touches `app/page.jsx`, stores,
 
 Checks specific to turning `home / market / mine` tabs into routes `/`, `/market`, `/mine`:
 
-- [ ] Route lifecycle snapshot: `main-tab-route-lifecycle` JSON shape matches baseline (see `doc/storage-snapshot-scenarios.md`).
-- [ ] `onSync` event comparison: navigation alone fires no extra `SYNC_KEYS` events.
-- [ ] GitHub Pages deep-link refresh: direct refresh of `/`, `/market`, `/mine` (incl. repo subpath) works after deploy.
-- [ ] Mobile container class check: `content` / `content-with-mobile-tabbar` / `mine-mobile-root` / `mobile-main-tab-panel*` behavior matches baseline per route.
-- [ ] Runtime context render/profile check: typing in search does not remount `MarketTab`/`MineTab`; no broad rerender storm.
-- [ ] Desktop direct `/mine` redirects to `/` only after viewport resolved non-mobile; mobile direct `/mine` does not jump.
+- [x] Route lifecycle snapshot: `main-tab-route-lifecycle` — across `/ -> /market -> / -> /mine` (in-app SPA nav, seeded localStorage), `localStorage.setItem` was called **0 times** and the business-key snapshot was byte-identical before/after. Verified 2026-06-24 via a `localStorage.setItem` probe in the running dev app.
+- [x] `onSync` event comparison: navigation alone fires no `SYNC_KEYS` write at all (0 writes observed), so no extra `onSync` events. AppShell is mounted once from `app/layout.jsx` and does not remount across navigation, so init/sync effects do not re-run.
+- [ ] GitHub Pages deep-link refresh: direct refresh of `/`, `/market`, `/mine` (incl. repo subpath) works after deploy. (Local: `out/{index,market/index,mine/index}.html` emitted with `trailingSlash`; deployed-URL check pending Task 7.)
+- [x] Mobile container class check: `mobile-main-tab-panel--home` chrome renders on `/` and `/market`, absent on `/mine`; `containerClassName` (content / content-with-mobile-tabbar / mine-mobile-root) is route-derived in AppShell. Verified by screenshots.
+- [x] Runtime context render/profile check: search dropdown works on `/` and `/market` chrome; no remount storm observed; deep memo of context objects deferred (documented in AppShell).
+- [x] Desktop direct `/mine` redirects to `/` only after viewport resolved non-mobile; mobile direct `/mine` stays on `/mine` (no bounce). Verified at 1280px (redirects) and 414px (stays).

@@ -1,0 +1,1279 @@
+.icon-button:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+/* 不需要 hover 高亮的图标按钮（例如 PC 表格模式中的“编辑持仓”） */
+.icon-button.no-hover:hover {
+  color: inherit;
+  transform: none;
+  border-color: var(--border);
+}
+
+.icon-button:active {
+  transform: translateY(0);
+}
+
+.sticky-toggle-btn {
+  display: inline-flex !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sticky-toggle-btn:hover {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.icon-button.danger {
+  background: linear-gradient(180deg, #ef4444, #f87171);
+  color: #2b0b0b;
+}
+
+.icon-button.danger:hover {
+  box-shadow: 0 10px 20px rgba(248, 113, 113, 0.25);
+}
+
+.fav-button {
+  padding: 4px;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  width: auto;
+  height: auto;
+}
+
+.fav-button:hover {
+  color: var(--accent);
+}
+
+.fav-button.active {
+  color: var(--accent);
+}
+
+.tabs {
+  display: flex;
+  gap: 3px;
+  padding: 4px 0;
+  background: transparent;
+  border-radius: 0;
+  width: fit-content;
+  backdrop-filter: none;
+}
+
+.card.list-mode {
+  padding: 12px 16px;
+  position: relative;
+}
+
+.table-container {
+  padding: 0;
+  overflow: hidden;
+  grid-column: span 12;
+}
+
+/* PC 列表：左右分块，左侧可横向滚动，右侧操作列固定不参与滚动 */
+.table-pc-wrap {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  min-width: 0;
+}
+
+.table-scroll-area {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  /* 横向滚动条样式与项目整体规范一致：深色背景、边框色、圆角、hover 高亮 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+.table-scroll-area::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll-area::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.table-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+.table-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.table-scroll-area::-webkit-scrollbar-thumb:active {
+  background: var(--primary);
+}
+
+/* PC 表头固定时的 portal 容器：与 table-scroll-area 横向滚动同步，但隐藏自身滚动条 */
+.pc-fund-table-portal-header {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge legacy */
+}
+
+.pc-fund-table-portal-header::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
+/* 纵向滚动条通用样式（与项目整体规范一致，供根页面、弹窗、列表等使用） */
+html,
+.scrollbar-y-styled {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+html::-webkit-scrollbar,
+.scrollbar-y-styled::-webkit-scrollbar {
+  width: 8px;
+}
+
+html::-webkit-scrollbar-track,
+.scrollbar-y-styled::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+html::-webkit-scrollbar-thumb,
+.scrollbar-y-styled::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+.scrollbar-y-styled::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+html::-webkit-scrollbar-thumb:active,
+.scrollbar-y-styled::-webkit-scrollbar-thumb:active {
+  background: var(--primary);
+}
+
+/* 固定像素列宽，避免初始在视口外的列滚入后布局错误、内容不展示；不依赖 fr/内容测量 */
+.table-scroll-area-inner {
+  /*width: 1192px;*/
+  min-width: 900px;
+}
+
+/* 基金名称 净值 涨跌幅 估算涨幅 估值时间 持仓金额 当日收益 持有收益（三列同宽） */
+.table-header-row-scroll,
+.table-row-scroll {
+  display: grid;
+  grid-template-columns: 220px 100px 100px 100px 140px 140px 140px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-header-row-scroll {
+  padding: 16px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border);
+}
+
+.table-header-row-scroll .table-header-cell {
+  white-space: nowrap;
+}
+
+/* 表格行内容不换行，单行显示 */
+.table-row-scroll .table-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* 当日收益、持有收益列：约束内容不溢出到相邻列，过长显示省略号 */
+.table-row-scroll .profit-cell,
+.table-row-scroll .holding-cell {
+  min-width: 0;
+}
+.table-row-scroll .profit-cell > *,
+.table-row-scroll .holding-cell > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-row-scroll .name-cell .name-text {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+}
+
+.table-row-scroll .name-cell .name-cell-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.table-row-scroll .name-cell .title-text {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+}
+
+.table-row-scroll .name-cell .name-text.show-full {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-all;
+}
+
+.table-row-scroll {
+  padding: 12px 24px !important;
+  min-height: 52px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-row-scroll:hover,
+.table-row-scroll.row-hovered {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.table-row-scroll:nth-child(even),
+.table-row-scroll.row-even {
+  background: var(--table-row-alt-bg) !important;
+}
+
+.table-fixed-row.row-hovered {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.table-fixed-col {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+}
+
+.table-header-cell-fixed {
+  padding: 16px 12px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.table-fixed-row {
+  min-height: 59px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-bottom: none;
+}
+
+.table-fixed-row .table-cell {
+  border: none;
+}
+
+.table-row-wrapper {
+  width: 100%;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2.2fr 0.8fr 1fr 1fr 1.2fr 1.2fr 1.2fr 0.5fr;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px !important;
+}
+
+.table-row:hover {
+  background: #2a394b;
+}
+
+.table-row:nth-child(even) {
+  background: var(--table-row-alt-bg);
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-header-row {
+  display: grid;
+  grid-template-columns: 2.2fr 0.8fr 1fr 1fr 1.2fr 1.2fr 1.2fr 0.5fr;
+  gap: 12px;
+  padding: 16px 14px;
+  background: #2a394b;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-header-cell {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.table-cell {
+  display: flex;
+  align-items: center;
+}
+
+.text-right {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.text-center {
+  text-align: center;
+  justify-content: center;
+}
+
+.name-cell {
+  gap: 8px;
+}
+
+.title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name-text {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.updated-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  font-size: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+.dca-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 6px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+[data-theme='light'] .dca-indicator {
+  background: rgba(6, 182, 212, 0.15);
+  color: #0891b2;
+}
+
+.pending-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 6px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+[data-theme='light'] .pending-indicator {
+  background: rgba(234, 88, 12, 0.15);
+  color: #ea580c;
+}
+
+.code-text {
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .table-header-row {
+    display: none;
+  }
+
+  /* 移动端基金表格：横向滚动容器，基金名称与操作列固定 */
+  .mobile-fund-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-fund-table-scroll {
+    /* min-width 由 MobileFundTable 根据 columns meta.width 动态设置 */
+  }
+
+  /* 窗口级纵向虚拟滚动：表体自身不出现纵向滚动条，仅随页面滚动 */
+  .mobile-fund-table-body-virtual {
+    overflow-x: visible;
+    overflow-y: visible;
+    width: 100%;
+  }
+
+  .mobile-fund-table-portal-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    left: 13px;
+    right: 13px;
+    box-sizing: border-box;
+  }
+  .mobile-fund-table-portal-header::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile-fund-table-portal-header .mobile-fund-table-scroll {
+    padding: 0;
+  }
+
+  .mobile-fund-table .table-header-row {
+    display: grid;
+    /* grid-template-columns 由 MobileFundTable 根据当前列顺序动态设置 */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .mobile-fund-table .table-header-row .table-header-cell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+  }
+
+  /* 移动端表格行：长按进批量/排序时尽量避免系统文字选择与 iOS 放大镜/呼出菜单（兼容 WebKit / Chromium） */
+  .mobile-fund-table .table-row-wrapper,
+  .mobile-fund-table .table-row-wrapper *,
+  .mobile-fund-table .table-row,
+  .mobile-fund-table .table-row * {
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .mobile-fund-table .table-row {
+    grid-template-areas: unset;
+    gap: 12px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .mobile-fund-table .table-header-row {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  [data-theme='light'] .mobile-fund-table .table-row,
+  [data-theme='light'] .mobile-fund-table .table-header-row {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-fund-table .table-row .table-cell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 基金名称列固定左侧：右侧阴影突出固定列，覆盖行 border-bottom */
+  .mobile-fund-table .table-header-cell-pin-left,
+  .mobile-fund-table .table-cell-pin-left {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    border-bottom: none;
+  }
+
+  .mobile-fund-table .is-scrolled,
+  .mobile-fund-table .is-scrolled {
+    box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.12);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  [data-theme='light'] .mobile-fund-table .is-scrolled,
+  [data-theme='light'] .mobile-fund-table .is-scrolled {
+    box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.08);
+    border-right-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-fund-table .table-header-cell-pin-left {
+    background: var(--table-pinned-header-bg);
+  }
+
+  .mobile-fund-table .table-cell-pin-left {
+    background: var(--bg);
+  }
+
+  /* 移动端表格取消行悬停高亮 */
+  .mobile-fund-table .table-row:hover {
+    background: var(--bg);
+  }
+
+  .mobile-fund-table .table-row:hover .table-cell-pin-left {
+    background: var(--bg);
+  }
+
+  /* 固定列右侧：同上，保证竖向分隔连续 */
+  .mobile-fund-table .table-header-cell-pin-right,
+  .mobile-fund-table .table-cell-pin-right {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    box-shadow: -4px 0 24px -4px rgba(0, 0, 0, 0.12);
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  [data-theme='light'] .mobile-fund-table .table-header-cell-pin-right,
+  [data-theme='light'] .mobile-fund-table .table-cell-pin-right {
+    border-left-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-fund-table .table-header-cell-pin-right {
+    background: var(--table-pinned-header-bg);
+  }
+
+  .mobile-fund-table .table-cell-pin-right {
+    background: var(--bg);
+  }
+
+  .mobile-fund-table .table-row:hover .table-cell-pin-right {
+    background: var(--bg);
+  }
+
+  .mobile-fund-table .name-cell {
+    grid-area: unset;
+    align-self: stretch;
+    padding-left: 12px;
+  }
+
+  .mobile-fund-table .table-header-row .table-header-cell-pin-left {
+    padding-left: 12px;
+  }
+
+  /* 基金名称表头排序按钮在排序模式下的高亮 */
+  .mobile-fund-table .mobile-fund-table-header .icon-button.active {
+    color: var(--primary);
+  }
+
+  .mobile-fund-table .table-row .name-cell .name-cell-content {
+    min-height: 100%;
+  }
+
+  /* 移动端表格表体基金名称字体缩小 */
+  .mobile-fund-table .table-row .name-cell .name-text {
+    font-size: 12px;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-fund-table .table-row .name-cell .name-text.show-full {
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .mobile-fund-table .table-row .name-cell .code-text {
+    font-size: 11px;
+  }
+
+  .mobile-fund-table .value-cell {
+    grid-area: unset;
+  }
+
+  .mobile-fund-table .change-cell {
+    grid-area: unset;
+  }
+
+  .mobile-fund-table .est-change-cell,
+  .mobile-fund-table .profit-cell,
+  .mobile-fund-table .time-cell {
+    grid-area: unset;
+    justify-content: flex-end;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr 80px 100px;
+    grid-template-areas:
+      'name value change'
+      'name time profit';
+    gap: 4px 12px;
+    padding: 12px !important;
+  }
+
+  .name-cell {
+    grid-area: name;
+  }
+
+  .value-cell {
+    grid-area: value;
+  }
+
+  .change-cell {
+    grid-area: change;
+  }
+
+  .profit-cell {
+    grid-area: profit;
+  }
+
+  .time-cell {
+    grid-area: time;
+    justify-content: flex-end;
+  }
+
+  .action-cell {
+    display: none;
+  }
+
+  .holding-cell {
+    display: none;
+  }
+
+  .holding-amount-cell {
+    display: none;
+  }
+
+  /* 移动端表格内保留持仓、收益、操作列显示 */
+  .mobile-fund-table .holding-amount-cell,
+  .mobile-fund-table .holding-cell,
+  .mobile-fund-table .action-cell {
+    display: flex;
+  }
+
+  /* 操作列删除按钮在移动端表格内需显示（避免被 .action-cell .danger 隐藏） */
+  .mobile-fund-table .action-cell .icon-button.danger {
+    display: inline-flex;
+  }
+
+  .table-cell.time-cell span {
+    font-size: 10px !important;
+  }
+}
+
+.stat-compact .up {
+  color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  /* 非 mobile-fund-table 下的操作列删除按钮隐藏（如旧列表布局）；mobile-fund-table 内由上面覆盖为显示 */
+  .action-cell .danger {
+    display: none;
+  }
+
+  .mobile-fund-table .action-cell .danger {
+    display: inline-flex;
+  }
+}
+
+.swipe-action-bg {
+  position: absolute;
+  top: 1px;
+  /* 留出一点缝隙，或者与 border 对齐 */
+  bottom: 1px;
+  right: 0;
+  width: 80px;
+  background: linear-gradient(180deg, #ef4444, #f87171);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #2b0b0b;
+  z-index: 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 10px 0 20px -10px rgba(0, 0, 0, 0.2); /* 增加一点内阴影，增加层次感 */
+}
+
+.stat-compact .down {
+  color: var(--success);
+}
+
+.filter-bar {
+  transition: all 0.3s ease;
+  position: sticky;
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-summary-sticky {
+  position: sticky;
+  z-index: 35;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(16px);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    position: sticky;
+    z-index: 40;
+    width: calc(100% + 32px);
+    background: rgba(15, 23, 42, 0.9);
+    margin: 0 -16px 16px -16px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center !important;
+  }
+
+  .tabs {
+    width: 100%;
+    justify-content: flex-start;
+    /* 移动端改为左对齐 */
+    background: transparent;
+    border-radius: 0;
+    backdrop-filter: none;
+    padding: 0;
+  }
+
+  .group-summary-sticky {
+    top: 175px;
+    width: calc(100% + 32px);
+    margin: 0 -16px 16px -16px;
+    padding: 8px 16px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .group-summary-sticky .group-summary-card {
+    margin-bottom: 0;
+  }
+}
+
+/* 禁止移动端输入框自动缩放 */
+@media (max-width: 640px) {
+  .input.no-zoom {
+    font-size: 16px !important;
+  }
+}
+
+.tab {
+  padding: 0 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
+  line-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tab:hover {
+  color: var(--primary);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.tab.active {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--primary);
+  box-shadow: none;
+}
+
+@media (hover: none) {
+  .tab:hover {
+    color: var(--muted);
+    background: transparent;
+  }
+  .tab.active,
+  .tab.active:hover {
+    background: rgba(34, 211, 238, 0.15);
+    color: var(--primary);
+    box-shadow: none;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  transition:
+    background 0.2s ease,
+    backdrop-filter 0.2s ease;
+}
+
+.modal-overlay-translucent {
+  background: rgba(2, 6, 23, 0.15);
+  backdrop-filter: blur(1px);
+}
+
+.modal {
+  width: 560px;
+  max-width: 92vw;
+  padding: 16px;
+}
+
+.portfolio-earnings-modal {
+  width: min(560px, 94vw);
+  max-height: min(88vh, 720px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.portfolio-earnings-modal-body {
+  flex: 1;
+  min-height: 0;
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 我的收益：底部 Drawer（vaul），内容区滚动与主题变量 */
+.my-earnings-drawer-content {
+  max-width: 100%;
+}
+
+.my-earnings-drawer-inner {
+  color: var(--text);
+}
+
+.my-earnings-drawer-scroll {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.my-earnings-drawer-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.my-earnings-drawer-scroll .my-earnings-year-list {
+  max-height: none;
+  overflow: visible;
+}
+
+/* 与 MobileFundCardDrawer 一致：主标题在 DrawerHeader；以下为年月/视图上下文 */
+.my-earnings-context-header {
+  margin: 16px 0 0 0;
+}
+
+.my-earnings-title-row.my-earnings-period-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  padding-left: 0;
+}
+
+.my-earnings-period-row-single {
+  justify-content: center;
+}
+
+.my-earnings-period-label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.my-earnings-period-nav-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.my-earnings-period-nav-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.my-earnings-period-nav-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.my-earnings-period-nav-btn:active {
+  opacity: 0.88;
+}
+
+.my-earnings-period-nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.my-earnings-context-title {
+  margin-top: 15px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.my-earnings-swipe-wrap {
+  margin-bottom: 16px;
+}
+
+.my-earnings-calendar-card {
+  background: var(--my-earnings-calendar-card-bg);
+  border: 1px solid var(--my-earnings-card-border);
+  border-radius: 28px;
+  padding: 18px 14px 10px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.my-earnings-rank-card {
+  min-height: 198px;
+}
+
+.my-earnings-rank-heading {
+  min-width: 0;
+}
+
+.my-earnings-rank-illustration {
+  flex: 0 0 118px;
+  width: 118px;
+  height: 80px;
+  margin-left: auto;
+  pointer-events: none;
+  opacity: var(--my-earnings-illu-opacity);
+}
+
+@media (max-width: 640px) {
+  .my-earnings-rank-card {
+    min-height: 190px;
+  }
+
+  .my-earnings-rank-heading {
+    gap: 10px;
+  }
+
+  .my-earnings-rank-illustration {
+    flex-basis: 92px;
+    width: 92px;
+    height: 62px;
+  }
+}
+
+.my-earnings-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--my-earnings-calendar-accent);
+  margin-bottom: 10px;
+}
+
+.my-earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.my-earnings-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px 2px 6px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--my-earnings-calendar-accent);
+  cursor: default;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.my-earnings-cell-outside {
+  color: var(--my-earnings-cell-faint);
+  font-weight: 500;
+}
+
+.my-earnings-cell-selected:not(:disabled) {
+  background: var(--my-earnings-selected-bg);
+  color: var(--my-earnings-selected-fg);
+  box-shadow: var(--my-earnings-selected-shadow);
+}
+
+.my-earnings-cell-selected:not(:disabled) .my-earnings-dot {
+  background: var(--my-earnings-dot-on-selected);
+}
+
+/* 按日视图：格内收益数字（正负着色与全站涨跌一致；字号由 FitText 在 10px～min 间缩放） */
+.my-earnings-cell-earnings {
+  display: block;
+  max-width: 100%;
+  padding: 0 1px;
+  overflow: hidden;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.my-earnings-drawer-content .my-earnings-cell-earnings.up {
+  color: var(--danger);
+}
+
+.my-earnings-drawer-content .my-earnings-cell-earnings.down {
+  color: var(--success);
+}
+
+.my-earnings-cell-earnings-zero {
+  color: var(--muted-foreground);
+}
+
+.my-earnings-cell-earnings-empty {
+  color: var(--muted-foreground);
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.my-earnings-cell-selected:not(:disabled) .my-earnings-cell-num {
+  color: var(--my-earnings-selected-fg);
+}
+
+.my-earnings-cell-selected:not(:disabled) .my-earnings-cell-earnings.up {
+  color: #fecaca;
+}
+
+.my-earnings-cell-selected:not(:disabled) .my-earnings-cell-earnings.down {
+  color: #a7f3d0;
+}
+
+.my-earnings-cell-selected:not(:disabled) .my-earnings-cell-earnings-zero,
+.my-earnings-cell-selected:not(:disabled) .my-earnings-cell-earnings-empty {
+  color: rgba(255, 255, 255, 0.82);
+  opacity: 1;
+}
+
+.my-earnings-dot {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--my-earnings-calendar-accent);
+}
+
+.my-earnings-dot-month {
+  position: static;
+  margin: 2px auto 0;
+}
+
+.my-earnings-cell-num {
+  line-height: 1.2;
+}
+
+.my-earnings-card-hint {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+.my-earnings-card-hint-icon {
+  color: var(--my-earnings-hint-icon);
+  opacity: 0.85;
+}
+
+.my-earnings-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 8px;
+  padding: 4px 0 8px;
+  min-width: 0;
+}
+
+.my-earnings-month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  text-align: center;
+  min-height: 64px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  background: var(--my-earnings-pill-bg);
+  border: 1px solid color-mix(in srgb, var(--my-earnings-card-border) 70%, transparent);
+}
+
+/* 未到月份：仅月份标题，在格内垂直居中 */
+.my-earnings-month-cell:has(> :only-child) {
+  justify-content: center;
+}
+
+.my-earnings-month-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--my-earnings-calendar-accent);
+}
+
+/* align-self: stretch + min-width:0 让 FitText 占满格宽，大数字时才能按容器缩小字号 */
+.my-earnings-month-value {
+  align-self: stretch;
+  margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--my-earnings-card-fg);
+}
+
+.my-earnings-drawer-content .my-earnings-month-value.up {
+  color: var(--danger);
+}
+
+.my-earnings-drawer-content .my-earnings-month-value.down {
+  color: var(--success);
+}
+
+.my-earnings-year-list {
+  max-height: min(48vh, 320px);
+  overflow-y: auto;
+  padding: 8px 4px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.my-earnings-year-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 12px;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  background: var(--my-earnings-pill-bg);
+  border: 1px solid color-mix(in srgb, var(--my-earnings-card-border) 70%, transparent);
+}
+
+.my-earnings-year-label {
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--my-earnings-calendar-accent);
+}
+
+.my-earnings-year-amount {
+  min-width: 0;
+  flex: 1 1 0%;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--my-earnings-card-fg);
+}
+
+.my-earnings-drawer-content .my-earnings-year-amount.up {
+  color: var(--danger);
+}
+
+.my-earnings-drawer-content .my-earnings-year-amount.down {
+  color: var(--success);
+}
+
+.my-earnings-year-empty {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  padding: 24px 8px;
+  margin: 0;
+}
+
+.my-earnings-detail {
+  padding: 16px 4px 8px;
+  text-align: center;
+}
+
+/* 统计区在日历上方时的留白（与 period 行、日历卡片衔接） */
+.my-earnings-detail-summary-top {
+  padding-top: 0;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.my-earnings-detail-label {
+  font-size: 14px;
+  color: var(--my-earnings-hero-muted);
+  margin-bottom: 8px;
+}

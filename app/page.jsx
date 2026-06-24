@@ -23,10 +23,8 @@ import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from '@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Announcement from './components/Announcement';
 import EmptyStateCard from './components/EmptyStateCard';
-import FundCard from './components/FundCard';
 
 import GroupSummary from './components/GroupSummary';
-import GroupAccountSummaryCard from './components/GroupAccountSummaryCard';
 import { CloseIcon, GridIcon, ListIcon, MoonIcon, PlusIcon, SettingsIcon, SortIcon, SunIcon } from './components/Icons';
 import UserMenu from './components/UserMenu';
 import RefreshButton from './components/RefreshButton';
@@ -34,22 +32,11 @@ const UpdateChecker = dynamic(() => import('./components/UpdateChecker'), { ssr:
 import MarketIndexAccordion from './components/MarketIndexAccordion';
 import githubImg from './assets/github.svg';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { getAllValuationSeries, clearFund } from './lib/valuationTimeseries';
-import { aggregatePortfolioDailyEarnings } from './lib/dailyEarnings';
-import { loadHolidaysForYears, isTradingDay as isDateTradingDay } from './lib/tradingCalendar';
+import { getAllValuationSeries } from './lib/valuationTimeseries';
 import { asyncPool } from './lib/asyncHelper';
-import {
-  fetchSmartFundNetValue,
-  fetchSmartFundNetValueBackward,
-  fetchFundPeriodReturns,
-  searchFunds
-} from './api/fund';
-import PcFundTable from './components/PcFundTable';
-import MobileFundTable from './components/MobileFundTable';
-import MobileBottomNav from './components/MobileBottomNav';
+import { fetchFundPeriodReturns } from './api/fund';
 import MineTab from './components/MineTab';
 import MarketTab from './components/MarketTab';
-import PcSideNav from './components/PcSideNav';
 import SearchFund from './components/SearchFund';
 import { useTheme } from './hooks/useTheme';
 import { useTradingDay } from './hooks/useTradingDay';
@@ -67,7 +54,6 @@ import {
   setAuthUser,
   useStorageStore,
   storageStore,
-  normalizePendingTrades,
   useModalStore,
   useSettingsStore
 } from './stores';
@@ -76,10 +62,8 @@ import ModalsLayer from './components/ModalsLayer';
 import {
   DEFAULT_SORT_RULES,
   SORT_DISPLAY_MODES,
-  DCA_SCOPE_GLOBAL,
   SUMMARY_TAB_ID,
   SUMMARY_SOURCE_GLOBAL,
-  DAILY_EARNINGS_SCOPE_ALL,
   DEFAULT_FUND_TAG_THEME
 } from '@/app/constants';
 
@@ -88,25 +72,18 @@ dayjs.extend(timezone);
 dayjs.extend(isSameOrAfter);
 
 import {
-  TZ,
   nowInTz,
-  toTz,
   formatDate,
   normalizeFundTagTheme,
-  normalizeFundTagInstanceListFromInput,
   stripLegacyTagsFromFundObject,
   getFundCodesFromTagRecord,
   sanitizeTagRowForStorage,
-  serializeTagRecordsForCompare,
-  cloneHoldingDeep,
   seedGroupHoldingsFromGlobal,
-  migrateDcaPlansToScoped,
-  isNavUpdated
+  migrateDcaPlansToScoped
 } from './lib/fundHelpers';
 
 import { dedupeByCode, normalizeCode, cleanCodeArray } from './lib/normalize';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { formatMoney } from '@/lib/utils';
 import {
   usePortfolioScope,
   usePortfolioScopeCleanup,
@@ -332,11 +309,6 @@ export default function HomePage() {
   const setHoldingMigrateDialog = (v) =>
     _ms({ holdingMigrateDialog: isFunction(v) ? v(_gs().holdingMigrateDialog) : v });
   const setHistoryModal = (v) => _ms({ historyModal: isFunction(v) ? v(_gs().historyModal) : v });
-  const setAddHistoryModal = (v) => _ms({ addHistoryModal: isFunction(v) ? v(_gs().addHistoryModal) : v });
-  const setFundDeleteConfirm = (v) => _ms({ fundDeleteConfirm: isFunction(v) ? v(_gs().fundDeleteConfirm) : v });
-  const setFundDeleteBulkConfirm = (v) =>
-    _ms({ fundDeleteBulkConfirm: isFunction(v) ? v(_gs().fundDeleteBulkConfirm) : v });
-  const setFundTagsEdit = (v) => _ms({ fundTagsEdit: isFunction(v) ? v(_gs().fundTagsEdit) : v });
   const setSuccessModal = (v) => _ms({ successModal: isFunction(v) ? v(_gs().successModal) : v });
 
   const fundDetailDrawerCloseRef = useRef(null); // 由 MobileFundTable 注入，用于确认删除时关闭基金详情 Drawer
@@ -406,7 +378,6 @@ export default function HomePage() {
   const {
     groupsWithHoldings,
     summaryTabPortfolioTotals,
-    hasGlobalPortfolioForSummary,
     showPortfolioSummaryTab,
     summaryMergedHoldings,
     summaryHoldingSourceGroupByCode,
@@ -437,7 +408,6 @@ export default function HomePage() {
     holdingsForTabWithLinked,
     dcaPlansForTab,
     transactionsForTab,
-    groupById,
     getScopedGroupId,
     getScopedHolding,
     getScopedDcaPlan,
@@ -525,7 +495,7 @@ export default function HomePage() {
     };
   }, [scopedFunds]);
 
-  const { displayFundsRaw, displayFunds } = useFundDisplayList({
+  const { displayFunds } = useFundDisplayList({
     scopedFunds,
     currentTab,
     groups,
@@ -541,7 +511,7 @@ export default function HomePage() {
     fundTagListsByCode
   });
 
-  const { latestDailyByCode, groupTotalHoldingAmount, pendingCodesForTab, pcFundTableData } = useFundTableRows({
+  const { groupTotalHoldingAmount, pendingCodesForTab, pcFundTableData } = useFundTableRows({
     displayFunds,
     holdingsForTabWithLinked,
     isTradingDay,
@@ -734,12 +704,10 @@ export default function HomePage() {
   // 搜索框 UI 状态（抽离到 useFundSearchBox）
   const {
     searchTerm,
-    setSearchTerm,
     isSearchFocused,
     setIsSearchFocused,
     searchResults,
     selectedFunds,
-    setSelectedFunds,
     isSearching,
     dropdownRef,
     inputRef,
@@ -1185,7 +1153,6 @@ export default function HomePage() {
   const {
     handleReorder,
     requestRemoveFund,
-    requestRemoveFundsFromCurrentGroup,
     removeFundsFromCurrentTabHandler,
     handleMoveFunds,
     removeFund,

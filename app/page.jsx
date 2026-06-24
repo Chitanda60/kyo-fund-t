@@ -115,6 +115,7 @@ import { useFundTags } from './features/tags/useFundTags';
 import { useTradingActions } from './features/trading/useTradingActions';
 import { useDcaScheduler } from './features/trading/useDcaScheduler';
 import { useFundMutations } from './features/portfolio/useFundMutations';
+import { useFundSearchBox } from './features/search/useFundSearchBox';
 
 export default function HomePage() {
   const {
@@ -277,17 +278,6 @@ export default function HomePage() {
     }).toDataUri();
   }, [user?.id]);
 
-  // 搜索相关状态
-  const [searchTerm, setSearchTerm] = useState('');
-  const deferredSearchTerm = useDeferredValue(searchTerm);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [selectedFunds, setSelectedFunds] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-
   // 分组内基金列表搜索（点击按钮后才应用）
   const [groupFundSearchTerm, setGroupFundSearchTerm] = useState('');
   const deferredGroupFundSearchTerm = useDeferredValue(groupFundSearchTerm);
@@ -299,16 +289,6 @@ export default function HomePage() {
   // 注意：isMobile 在此处尚未声明，shouldShowMarketIndex 由 page.jsx 内独立 useEffect 处理
   const containerRef = useRef(null);
   const { navbarRef, filterBarRef, navbarHeight, filterBarHeight } = useNavHeights({ groups, currentTab });
-
-  const handleMobileSearchClick = (e) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    setIsSearchFocused(true);
-    // 等待动画完成后聚焦，避免 iOS 键盘弹出问题
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 350);
-  };
 
   const [percentModes, setPercentModes] = useState({}); // { [code]: boolean }
   const [todayPercentModes, setTodayPercentModes] = useState({}); // { [code]: boolean }
@@ -750,16 +730,32 @@ export default function HomePage() {
     setFundTagRecords
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
+  // 搜索框 UI 状态（抽离到 useFundSearchBox）
+  const {
+    searchTerm,
+    setSearchTerm,
+    isSearchFocused,
+    setIsSearchFocused,
+    searchResults,
+    selectedFunds,
+    setSelectedFunds,
+    isSearching,
+    dropdownRef,
+    inputRef,
+    showDropdown,
+    setShowDropdown,
+    handleMobileSearchClick,
+    handleSearchInput,
+    toggleSelectFund,
+    addFund
+  } = useFundSearchBox({
+    funds,
+    setScannedFunds,
+    setSelectedScannedCodes,
+    setIsOcrScan,
+    setScanConfirmModalOpen,
+    setError
+  });
   const {
     openFundTagsEdit,
     handleSaveFundTags,
@@ -1183,42 +1179,6 @@ export default function HomePage() {
     }
   };
 
-  useEffect(() => {
-    const val = String(deferredSearchTerm ?? '').trim();
-    if (!val) {
-      setSearchResults([]);
-      return;
-    }
-
-    if (val.length < 2) return;
-
-    setIsSearching(true);
-    searchFunds(val)
-      .then((results) => {
-        setSearchResults(results);
-      })
-      .catch((e) => {
-        console.error('搜索失败', e);
-      })
-      .finally(() => {
-        setIsSearching(false);
-      });
-  }, [deferredSearchTerm]);
-
-  const handleSearchInput = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const toggleSelectFund = (fund) => {
-    setSelectedFunds((prev) => {
-      const exists = prev.find((f) => f.CODE === fund.CODE);
-      if (exists) {
-        return prev.filter((f) => f.CODE !== fund.CODE);
-      }
-      return [...prev, fund];
-    });
-  };
-
   const {
     handleReorder,
     requestRemoveFund,
@@ -1253,40 +1213,6 @@ export default function HomePage() {
     setSelectedScannedCodes(new Set([code]));
     setIsOcrScan(false);
     setScanConfirmModalOpen(true);
-  };
-
-  const addFund = async (e) => {
-    e?.preventDefault?.();
-    setError('');
-    const manualTokens = String(searchTerm || '')
-      .split(/[^0-9A-Za-z]+/)
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-    const selectedCodes = Array.from(
-      new Set([...selectedFunds.map((f) => f.CODE), ...manualTokens.filter((t) => /^\d{6}$/.test(t))])
-    );
-    if (selectedCodes.length === 0) {
-      setError('请输入或选择基金代码');
-      return;
-    }
-    const nameMap = {};
-    selectedFunds.forEach((f) => {
-      nameMap[f.CODE] = f.NAME;
-    });
-    const fundsToConfirm = selectedCodes.map((code) => ({
-      code,
-      name: nameMap[code] || '',
-      status: funds.some((f) => f.code === code) ? 'added' : 'pending'
-    }));
-    setScannedFunds(fundsToConfirm);
-    setSelectedScannedCodes(new Set(selectedCodes));
-    setIsOcrScan(false);
-    setScanConfirmModalOpen(true);
-    setSearchTerm('');
-    setSelectedFunds([]);
-    setShowDropdown(false);
-    inputRef.current?.blur();
-    setIsSearchFocused(false);
   };
 
   const saveSettings = (

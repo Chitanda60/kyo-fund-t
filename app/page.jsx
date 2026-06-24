@@ -107,15 +107,16 @@ import {
 import { dedupeByCode, normalizeCode, cleanCodeArray } from './lib/normalize';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { formatMoney } from '@/lib/utils';
-import { usePortfolioScope } from './features/portfolio/usePortfolioScope';
-import { usePortfolioScopeCleanup } from './features/portfolio/usePortfolioScopeCleanup';
-import { useFundDisplayList } from './features/portfolio/useFundDisplayList';
-import { useFundTableRows } from './features/portfolio/useFundTableRows';
-import { useFundTags } from './features/tags/useFundTags';
-import { useTradingActions } from './features/trading/useTradingActions';
-import { useDcaScheduler } from './features/trading/useDcaScheduler';
-import { useFundMutations } from './features/portfolio/useFundMutations';
-import { useFundSearchBox } from './features/search/useFundSearchBox';
+import {
+  usePortfolioScope,
+  usePortfolioScopeCleanup,
+  useFundDisplayList,
+  useFundTableRows,
+  useFundMutations
+} from './features/portfolio';
+import { useFundTags } from './features/tags';
+import { useTradingActions, useDcaScheduler } from './features/trading';
+import { useFundSearchBox } from './features/search';
 
 export default function HomePage() {
   const {

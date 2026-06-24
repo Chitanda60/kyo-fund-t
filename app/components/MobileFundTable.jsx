@@ -22,6 +22,7 @@ import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifi
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { isArray, isFunction, isObject, isString, throttle } from 'lodash';
+import { Sparkles } from 'lucide-react';
 import MobileFundCardDrawer from './MobileFundCardDrawer';
 import MobileSettingModal from './MobileSettingModal';
 import MoveGroupModal from './MoveGroupModal';
@@ -49,6 +50,8 @@ import { asyncPool } from '@/app/lib/asyncHelper';
 import { Badge } from '@/components/ui/badge';
 import { getTagThemeBadgeProps } from '@/app/components/AddTagDialog';
 import { cn } from '@/lib/utils';
+import DataSourceAccuracyBadge from './DataSourceAccuracyBadge';
+import { useDataSourceAccuracyLabels } from '@/app/hooks/useDataSourceAccuracyLabels';
 
 const EDIT_MOVE_TO_FRONT_COL = 'editMoveToFront';
 const EDIT_DRAG_COL = 'editDrag';
@@ -56,6 +59,7 @@ const EDIT_DRAG_COL = 'editDrag';
 const MOBILE_TAGS_COLUMN_ID = 'tags';
 
 const MOBILE_NON_FROZEN_COLUMN_IDS = [
+  'dataSource',
   'tags',
   'relatedSector',
   'yesterdayChangePercent',
@@ -79,6 +83,7 @@ const MOBILE_NON_FROZEN_COLUMN_IDS = [
 ];
 
 const MOBILE_COLUMNS_DEFAULT_HIDDEN_IF_PERSONALIZED = new Set([
+  'dataSource',
   'tags',
   'holdingCost',
   'costNav',
@@ -87,6 +92,7 @@ const MOBILE_COLUMNS_DEFAULT_HIDDEN_IF_PERSONALIZED = new Set([
 ]);
 
 const MOBILE_COLUMN_HEADERS = {
+  dataSource: '数据源',
   relatedSector: '关联板块',
   period1w: '近1周',
   period1m: '近1月',
@@ -119,26 +125,6 @@ function sortableRowA11yProps(attributes) {
   if (!attributes) return {};
   const { tabIndex: _ignored, ...rest } = attributes;
   return { ...rest, tabIndex: -1 };
-}
-
-function beginDragScrollLock(scrollYRef, rafRef) {
-  scrollYRef.current = window.scrollY;
-  const tick = () => {
-    if (window.scrollY !== scrollYRef.current) {
-      window.scrollTo(0, scrollYRef.current);
-    }
-    rafRef.current = requestAnimationFrame(tick);
-  };
-  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  rafRef.current = requestAnimationFrame(tick);
-}
-
-function endDragScrollLock(scrollYRef, rafRef) {
-  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  rafRef.current = null;
-  if (window.scrollY !== scrollYRef.current) {
-    window.scrollTo(0, scrollYRef.current);
-  }
 }
 
 function EditDragHandleCell({ disabled }) {
@@ -642,8 +628,7 @@ const MobileFundTable = memo(function MobileFundTable({
   );
 
   const ignoreNextDrawerCloseRef = useRef(false);
-  const dragScrollYRef = useRef(0);
-  const dragScrollRafRef = useRef(null);
+  const isTableDraggingRef = useRef(false);
 
   const onToggleFavoriteRef = useRef(onToggleFavorite);
   const onRemoveFundRef = useRef(onRemoveFund);
@@ -665,26 +650,6 @@ const MobileFundTable = memo(function MobileFundTable({
     onHoldingAmountClickRef.current = onHoldingAmountClick;
     onFundTagsClickRef.current = onFundTagsClick;
   }, [onToggleFavorite, onRemoveFund, onHoldingAmountClick, onFundTagsClick]);
-
-  const handleDragStart = () => {
-    beginDragScrollLock(dragScrollYRef, dragScrollRafRef);
-  };
-
-  const handleDragCancel = () => {
-    endDragScrollLock(dragScrollYRef, dragScrollRafRef);
-  };
-
-  const handleDragEnd = (e) => {
-    const { active, over } = e;
-    if (active && over && active.id !== over.id && onReorder) {
-      const oldIndex = data.findIndex((item) => item.code === active.id);
-      const newIndex = data.findIndex((item) => item.code === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) onReorder(oldIndex, newIndex);
-    }
-    endDragScrollLock(dragScrollYRef, dragScrollRafRef);
-  };
-
-  useEffect(() => () => endDragScrollLock(dragScrollYRef, dragScrollRafRef), []);
 
   const groupKey = currentTab ?? 'all';
   const currentGroupName = useMemo(() => {
@@ -783,7 +748,7 @@ const MobileFundTable = memo(function MobileFundTable({
   const defaultVisibility = (() => {
     const o = {};
     MOBILE_NON_FROZEN_COLUMN_IDS.forEach((id) => {
-      o[id] = true;
+      o[id] = MOBILE_COLUMNS_DEFAULT_HIDDEN_IF_PERSONALIZED.has(id) ? false : true;
     });
     return o;
   })();
@@ -808,6 +773,8 @@ const MobileFundTable = memo(function MobileFundTable({
     }
     return defaultVisibility;
   })();
+  const dataSourceEnabled = !isEditMode && mobileColumnVisibility?.dataSource !== false;
+  const dataSourceAccuracyLabels = useDataSourceAccuracyLabels(data, dataSourceEnabled);
 
   const persistMobileGroupConfig = (updates) => {
     if (typeof window === 'undefined') return;
@@ -1005,6 +972,73 @@ const MobileFundTable = memo(function MobileFundTable({
       throttledVerticalUpdate.cancel();
     };
   }, [stickyTop]);
+
+  const autoScrollRafRef = useRef(null);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRafRef.current) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  }, []);
+
+  const startAutoScroll = useCallback((direction) => {
+    if (autoScrollRafRef.current) return;
+    const tick = () => {
+      window.scrollBy(0, direction * 12);
+      autoScrollRafRef.current = requestAnimationFrame(tick);
+    };
+    autoScrollRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const handleDragMove = useCallback(
+    (event) => {
+      const { active } = event;
+      const rect = active?.rect?.current?.translated;
+      if (!rect) return;
+
+      // effectiveStickyTop is the sticky offset. Header height is ~36px in MobileFundTable.
+      const headerBottom = effectiveStickyTop + 36;
+      const triggerTop = headerBottom + 40; // 40px trigger zone below the header
+      const triggerBottom = window.innerHeight - 40; // 40px trigger zone above the bottom
+
+      if (rect.top < triggerTop) {
+        startAutoScroll(-1);
+      } else if (rect.bottom > triggerBottom) {
+        startAutoScroll(1);
+      } else {
+        stopAutoScroll();
+      }
+    },
+    [effectiveStickyTop, startAutoScroll, stopAutoScroll]
+  );
+
+  const handleDragStart = useCallback(() => {
+    isTableDraggingRef.current = true;
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    isTableDraggingRef.current = false;
+    stopAutoScroll();
+  }, [stopAutoScroll]);
+
+  const handleDragEnd = useCallback(
+    (e) => {
+      const { active, over } = e;
+      if (active && over && active.id !== over.id && onReorder) {
+        const oldIndex = data.findIndex((item) => item.code === active.id);
+        const newIndex = data.findIndex((item) => item.code === over.id);
+        if (oldIndex !== -1 && newIndex !== -1) onReorder(oldIndex, newIndex);
+      }
+      isTableDraggingRef.current = false;
+      stopAutoScroll();
+    },
+    [data, onReorder, stopAutoScroll]
+  );
+
+  useEffect(() => {
+    return () => stopAutoScroll();
+  }, [stopAutoScroll]);
 
   useEffect(() => {
     const tableEl = tableContainerRef.current;
@@ -1359,7 +1393,7 @@ const MobileFundTable = memo(function MobileFundTable({
   const handleResetMobileColumnVisibility = () => {
     const allVisible = {};
     MOBILE_NON_FROZEN_COLUMN_IDS.forEach((id) => {
-      allVisible[id] = true;
+      allVisible[id] = MOBILE_COLUMNS_DEFAULT_HIDDEN_IF_PERSONALIZED.has(id) ? false : true;
     });
     setMobileColumnVisibility(allVisible);
   };
@@ -1748,6 +1782,47 @@ const MobileFundTable = memo(function MobileFundTable({
           </div>
         ),
         meta: { align: 'center', cellClassName: 'mobile-edit-action-cell', width: columnWidthMap[EDIT_DRAG_COL] }
+      },
+      {
+        id: 'dataSource',
+        header: '数据源',
+        cell: (info) => {
+          const original = info.row.original || {};
+          const autoSource = !!original.rawFund?.autoSource;
+          const dataSource = original.rawFund?.dataSource || 1;
+          const text = autoSource ? `自动源${dataSource}` : `数据源${dataSource}`;
+          const accuracyLabel = dataSourceAccuracyLabels?.[original.rawFund?.code || original.code];
+          return (
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                alignItems: 'flex-end',
+                gap: '4px'
+              }}
+            >
+              <Badge
+                variant="outline"
+                className={cn(
+                  'font-normal text-[11px] cursor-pointer hover:border-primary/50 transition-colors',
+                  autoSource ? 'border-primary/30 text-primary bg-primary/5' : 'text-muted-foreground border-border'
+                )}
+                style={autoSource ? { gap: '2px' } : {}}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  useModalStore.setState({ dataSourceModal: { open: true, fund: original.rawFund } });
+                }}
+              >
+                {autoSource && <Sparkles size={10} style={{ opacity: 0.8 }} />}
+                {text}
+              </Badge>
+              <DataSourceAccuracyBadge label={accuracyLabel} />
+            </div>
+          );
+        },
+        meta: { align: 'right', width: columnWidthMap.dataSource ?? 80 }
       },
       {
         id: 'tags',
@@ -2498,6 +2573,7 @@ const MobileFundTable = memo(function MobileFundTable({
       relatedSectorByCode,
       sectorQuoteByLabel,
       periodReturnsByCode,
+      dataSourceAccuracyLabels,
       isEditMode,
       editSelectedCodes,
       exitEditMode,
@@ -2871,6 +2947,7 @@ const MobileFundTable = memo(function MobileFundTable({
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
               onDragEnd={handleDragEnd}
               onDragCancel={handleDragCancel}
               modifiers={[restrictToVerticalAxis, restrictToParentElement]}

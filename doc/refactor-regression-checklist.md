@@ -60,3 +60,14 @@ Use this checklist after each refactor task that touches `app/page.jsx`, stores,
 |         16 Feature barrels |            |            |       |               |                        |                                            |
 |     17 Final page slimming |            |            |       |               |                        | full regression                            |
 |      18 Optional CSS split |            |            |       |               |                        | optional                                   |
+
+## Split Main Tabs Into Pages (2026-06-24 migration)
+
+Checks specific to turning `home / market / mine` tabs into routes `/`, `/market`, `/mine`:
+
+- [ ] Route lifecycle snapshot: `main-tab-route-lifecycle` JSON shape matches baseline (see `doc/storage-snapshot-scenarios.md`).
+- [ ] `onSync` event comparison: navigation alone fires no extra `SYNC_KEYS` events.
+- [ ] GitHub Pages deep-link refresh: direct refresh of `/`, `/market`, `/mine` (incl. repo subpath) works after deploy.
+- [ ] Mobile container class check: `content` / `content-with-mobile-tabbar` / `mine-mobile-root` / `mobile-main-tab-panel*` behavior matches baseline per route.
+- [ ] Runtime context render/profile check: typing in search does not remount `MarketTab`/`MineTab`; no broad rerender storm.
+- [ ] Desktop direct `/mine` redirects to `/` only after viewport resolved non-mobile; mobile direct `/mine` does not jump.

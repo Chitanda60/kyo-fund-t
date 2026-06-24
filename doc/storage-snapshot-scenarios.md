@@ -56,6 +56,13 @@ DCA. **Generate DCA trades** (Task 11)
 - Keys to inspect: `dcaPlans`, `pendingTrades`.
 - Run a DCA generation scenario on a trading day.
 
+main-tab-route-lifecycle. **Split main tabs into pages** (2026-06-24 migration)
+
+- Baseline (before route cutover): in the old single-route tab UI, navigate `home -> market -> home -> mine` with the nav controls.
+- Post-cutover: navigate `/` -> `/market` -> `/` -> `/mine` with app navigation.
+- Capture `createStorageSnapshot()` + `installSyncEventRecorder().getEvents()` at the start and end of each sequence, same fixed seed.
+- Expected: identical snapshot shape; **no additional `SYNC_KEYS` event fires only because of navigation**.
+
 ## Pass Criteria
 
 - Snapshot JSON shape is equal before and after the refactor for the same operation and seed data.

@@ -7,6 +7,7 @@ import { CloseIcon } from './Icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { formatMoney } from '@/lib/utils';
+import { useUserStore } from '@/app/stores';
 
 export default function ScanImportConfirmModal({
   scannedFunds,
@@ -22,13 +23,16 @@ export default function ScanImportConfirmModal({
   isOcrScan = false,
   currentGroup = 'all'
 }) {
+  const user = useUserStore((s) => s.user);
   const [selectedGroupId, setSelectedGroupId] = useState(currentGroup);
   const [expandAfterAdd, setExpandAfterAdd] = useState(true);
+  const [autoDataSource, setAutoDataSource] = useState(!!user);
+  const [autoImportTags, setAutoImportTags] = useState(true);
   const allCodeSet = useMemo(() => new Set((existingAllCodes || []).filter(Boolean)), [existingAllCodes]);
   const favCodeSet = useMemo(() => new Set((existingFavCodes || []).filter(Boolean)), [existingFavCodes]);
 
   const handleConfirm = () => {
-    onConfirm(selectedGroupId, expandAfterAdd);
+    onConfirm(selectedGroupId, expandAfterAdd, autoDataSource, autoImportTags);
   };
 
   const formatAmount = (val) => {
@@ -194,6 +198,36 @@ export default function ScanImportConfirmModal({
                 添加后展开详情
               </span>
               <Switch checked={expandAfterAdd} onCheckedChange={(checked) => setExpandAfterAdd(!!checked)} />
+            </div>
+            {user && (
+              <div
+                style={{
+                  marginTop: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8
+                }}
+              >
+                <span className="muted" style={{ fontSize: 13 }}>
+                  自动数据源
+                </span>
+                <Switch checked={autoDataSource} onCheckedChange={(checked) => setAutoDataSource(!!checked)} />
+              </div>
+            )}
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8
+              }}
+            >
+              <span className="muted" style={{ fontSize: 13 }}>
+                导入基金标签
+              </span>
+              <Switch checked={autoImportTags} onCheckedChange={(checked) => setAutoImportTags(!!checked)} />
             </div>
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="muted" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>

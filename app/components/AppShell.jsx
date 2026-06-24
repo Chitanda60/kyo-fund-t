@@ -192,6 +192,10 @@ export default function AppShell({ children }) {
     setShowGroupFundSearchPc,
     showGroupFundSearchMobile,
     setShowGroupFundSearchMobile,
+    showGroupDropdownPc,
+    setShowGroupDropdownPc,
+    showGroupDropdownMobile,
+    setShowGroupDropdownMobile,
     dynamicStylePc,
     setDynamicStylePc,
     dynamicStyleMobile,
@@ -1165,7 +1169,9 @@ export default function AppShell({ children }) {
     showMarketIndexOverride,
     showGroupFundSearchOverride,
     isMobileOverride,
-    dynamicStyleOverride
+    dynamicStyleOverride,
+    containerWidthOverride,
+    showGroupDropdownOverride
   ) => {
     e?.preventDefault?.();
     const seconds = secondsOverride ?? tempSeconds;
@@ -1198,8 +1204,16 @@ export default function AppShell({ children }) {
     if (targetIsMobile) setDynamicStyleMobile(nextDynamicStyle);
     else setDynamicStylePc(nextDynamicStyle);
 
+    const nextShowGroupDropdown = isBoolean(showGroupDropdownOverride)
+      ? showGroupDropdownOverride
+      : targetIsMobile
+        ? showGroupDropdownMobile
+        : showGroupDropdownPc;
+    if (targetIsMobile) setShowGroupDropdownMobile(nextShowGroupDropdown);
+    else setShowGroupDropdownPc(nextShowGroupDropdown);
+
     // 在移动端不裁剪也不修改 pcContainerWidth，直接保留原值
-    let w = Number(containerWidth) || 1200;
+    let w = Number(containerWidthOverride ?? containerWidth) || 1200;
     if (!targetIsMobile) {
       w = Math.min(Math.max(window.innerWidth, 2000), Math.max(600, w));
       setContainerWidth(w);
@@ -1213,7 +1227,8 @@ export default function AppShell({ children }) {
           ...parsed,
           showMarketIndexMobile: nextShowMarketIndex,
           showGroupFundSearchMobile: nextShowGroupFundSearch,
-          dynamicStyleMobile: nextDynamicStyle
+          dynamicStyleMobile: nextDynamicStyle,
+          showGroupDropdownMobile: nextShowGroupDropdown
         });
       } else {
         setCustomSettings({
@@ -1221,7 +1236,8 @@ export default function AppShell({ children }) {
           pcContainerWidth: w,
           showMarketIndexPc: nextShowMarketIndex,
           showGroupFundSearchPc: nextShowGroupFundSearch,
-          dynamicStylePc: nextDynamicStyle
+          dynamicStylePc: nextDynamicStyle,
+          showGroupDropdownPc: nextShowGroupDropdown
         });
       }
     } catch {}
@@ -1933,6 +1949,8 @@ export default function AppShell({ children }) {
     showMarketIndexMobile,
     showGroupFundSearchPc,
     showGroupFundSearchMobile,
+    showGroupDropdownPc,
+    showGroupDropdownMobile,
     dynamicStylePc,
     dynamicStyleMobile,
     scanProgress: scanProgress ?? { stage: 'ocr', current: 0, total: 0 },

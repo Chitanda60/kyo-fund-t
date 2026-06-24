@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback, useTransition, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
 import SearchBar from '../components/SearchBar';
-import SummaryTabContent from '../components/SummaryTabContent';
-import FundListView from '../components/FundListView';
 import NavLayout from '../components/NavLayout';
-import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
 import { createAvatar } from '@dicebear/core';
@@ -19,22 +16,8 @@ import { isArray, isBoolean, isFunction, isNumber, isObject, isPlainObject, isSt
 import { v4 as uuidv4 } from 'uuid';
 import { toast as sonnerToast } from 'sonner';
 
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Announcement from '../components/Announcement';
-import EmptyStateCard from '../components/EmptyStateCard';
-
-import GroupSummary from '../components/GroupSummary';
-import {
-  CloseIcon,
-  GridIcon,
-  ListIcon,
-  MoonIcon,
-  PlusIcon,
-  SettingsIcon,
-  SortIcon,
-  SunIcon
-} from '../components/Icons';
+import { CloseIcon, MoonIcon, SunIcon } from '../components/Icons';
 import UserMenu from '../components/UserMenu';
 import RefreshButton from '../components/RefreshButton';
 const UpdateChecker = dynamic(() => import('../components/UpdateChecker'), { ssr: false });
@@ -44,9 +27,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getAllValuationSeries } from '../lib/valuationTimeseries';
 import { asyncPool } from '../lib/asyncHelper';
 import { fetchFundPeriodReturns } from '../api/fund';
-import MineTab from '../components/MineTab';
-import MarketTab from '../components/MarketTab';
-import SearchFund from '../components/SearchFund';
 import { useTheme } from '../hooks/useTheme';
 import { useTradingDay } from '../hooks/useTradingDay';
 import { useHoldingProfit } from '../hooks/useHoldingProfit';

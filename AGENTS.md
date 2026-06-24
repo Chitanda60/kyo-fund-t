@@ -8,15 +8,23 @@
 
 Real-time mutual fund valuation tracker (基估宝). Next.js 16 App Router, pure JavaScript/JSX, static export to GitHub Pages. The project is a client-side SPA with glassmorphism styling, localStorage-first persistence, optional Supabase cloud sync, and Chinese financial data loaded through JSONP/script injection plus selected fetch/Supabase calls.
 
-The preserve-UI refactor is partially/mostly applied in this branch: `app/page.jsx` is now an orchestration shell (~2815 lines), fund API logic is split under `app/services/fund/`, feature hooks live under `app/features/`, modal state is centralized in Zustand, and global CSS is split into `app/styles/*` with `app/globals.css` as the import barrel.
+The preserve-UI refactor is applied: fund API logic is split under `app/services/fund/`, feature hooks live under `app/features/`, modal state is centralized in Zustand, and global CSS is split into `app/styles/*` with `app/globals.css` as the import barrel.
+
+The main `home / market / mine` tabs are **route-backed App Router pages** (`/`, `/market`, `/mine`). All former `app/page.jsx` orchestration (state, effects, handlers, `NavLayout`, the shared navbar/announcement/market-index chrome, and `ModalsLayer`) now lives in a persistent client shell `app/components/AppShell.jsx`, mounted once from `app/layout.jsx` so it survives route navigation (stores/refresh/sync stay alive; navigation fires no extra storage writes). Route pages are render-only and read data/actions from `AppRuntimeContext` (split state/actions). Portfolio group tabs (`全部 / 自选 / 汇总 / custom groups`) remain internal home-page state (`currentTab` in AppShell), not routes. Desktop `/mine` redirects to `/` after viewport resolves non-mobile. `trailingSlash: true` is set so GitHub Pages deep links resolve per-route `index.html`.
 
 ## STRUCTURE
 
 ```
 real-time-fund/
 ├── app/                               # Next.js App Router root
-│   ├── page.jsx                       # Main SPA orchestration (~2815 lines)
-│   ├── layout.jsx                     # Root layout: theme bootstrap, PWA, GA, QueryClient, Toaster
+│   ├── page.jsx                       # Route `/`: renders <HomePageContent /> only
+│   ├── market/page.jsx                # Route `/market`: renders <MarketPageContent />
+│   ├── mine/page.jsx                  # Route `/mine`: <MinePageContent />; desktop redirects to `/`
+│   ├── layout.jsx                     # Root layout: providers + mounts persistent <AppShell>
+│   ├── components/AppShell.jsx        # Persistent client shell: ALL former page.jsx state/effects/handlers, NavLayout, navbar chrome, ModalsLayer; provides AppRuntimeContext
+│   ├── components/pages/              # Render-only route content (Home/Market/Mine PageContent)
+│   ├── contexts/AppRuntimeContext.jsx # Split state/actions context consumed by route content
+│   ├── hooks/useMainTabRoute.js       # URL-derived mainTab + setMainTab (router.push)
 │   ├── global-error.jsx               # App-level client error page/toast
 │   ├── globals.css                    # CSS import barrel only
 │   ├── api/fund.js                    # Fund API barrel re-exporting app/services/fund/*
@@ -59,36 +67,37 @@ real-time-fund/
 
 ## WHERE TO LOOK
 
-| Task                     | Location                                                        | Notes                                                 |
-| ------------------------ | --------------------------------------------------------------- | ----------------------------------------------------- |
-| Main app orchestration   | `app/page.jsx`                                                  | State wiring, feature hook calls, layout composition  |
-| Fund data public imports | `app/api/fund.js`                                               | Barrel only; keep export names stable                 |
-| Fund valuation APIs      | `app/services/fund/valuationApi.js`                             | 天天基金 fundgz, Sina, Supabase QDII fallback         |
-| Fund holdings APIs       | `app/services/fund/holdingsApi.js`                              | pingzhongdata holdings + stock quote script injection |
-| Fund search APIs         | `app/services/fund/searchApi.js`                                | Eastmoney search JSONP                                |
-| Market and sectors       | `app/services/fund/marketApi.js`, `sectorsApi.js`               | Tencent indices, Supabase/Eastmoney sector data       |
-| Portfolio derivation     | `app/features/portfolio/usePortfolioScope.js`                   | Active scope, linked holdings, tab data               |
-| Display list/sorting     | `app/features/portfolio/useFundDisplayList.js`                  | Filtering and sort result models                      |
-| Table row models         | `app/features/portfolio/useFundTableRows.js`                    | PC/mobile table data                                  |
-| Fund mutations           | `app/features/portfolio/useFundMutations.js`                    | Delete, move, reorder, group cleanup                  |
-| Trading actions          | `app/features/trading/useTradingActions.js`                     | Buy/sell, pending queue, transaction mutations        |
-| DCA scheduling           | `app/features/trading/useDcaScheduler.js`                       | Scheduled pending trades                              |
-| Tags                     | `app/features/tags/useFundTags.js`                              | `tags` storage key, tag pool/edit actions             |
-| Search box               | `app/features/search/useFundSearchBox.js`                       | Search UI state, chips, add fund trigger              |
-| Business storage         | `app/stores/storageStore.js`                                    | Unified localStorage access and cloud sync trigger    |
-| Modal state              | `app/stores/modalStore.js`                                      | All modal open flags/payloads                         |
-| Modal rendering          | `app/components/ModalsLayer.jsx`                                | Central modal/drawer/dialog render layer              |
-| Cloud sync               | `app/hooks/useSyncManager.js`, `app/lib/supabase.js`            | Supabase auth/config sync                             |
-| Refresh loop             | `app/hooks/useRefreshManager.js`                                | Fund data refresh, holdings, charts, DCA processing   |
-| OCR import               | `app/hooks/useScanImport.js`, `app/lib/ocr.js`                  | Tesseract + LLM parsing                               |
-| Query cache              | `app/lib/get-query-client.js`, `app/lib/query-keys.js`          | TanStack Query cache shared with imperative APIs      |
-| Valuation time series    | `app/lib/valuationTimeseries.js`                                | localStorage intraday valuation history               |
-| Styles                   | `app/globals.css`, `app/styles/*.css`                           | Import barrel + split global CSS                      |
-| UI primitives            | `components/ui/`                                                | shadcn/ui, radix-ui, lucide                           |
-| localStorage schema      | `doc/localStorage 数据结构.md`                                  | Stored data shape docs                                |
-| Supabase schema          | `doc/supabase.sql`                                              | Cloud sync DB + RPCs                                  |
-| Refactor plan            | `docs/plans/2026-06-17-preserve-ui-refactor.md`                 | Source plan                                           |
-| Refactor execution       | `docs/plans/2026-06-17-preserve-ui-refactor-execution-steps.md` | Task-by-task runbook                                  |
+| Task                     | Location                                                                | Notes                                                                              |
+| ------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Main app orchestration   | `app/components/AppShell.jsx`                                           | All state/effects/handlers, navbar chrome, ModalsLayer; provides AppRuntimeContext |
+| Main tab routing         | `app/{page,market/page,mine/page}.jsx` + `app/hooks/useMainTabRoute.js` | Route content + URL-derived tab; group tabs stay internal                          |
+| Fund data public imports | `app/api/fund.js`                                                       | Barrel only; keep export names stable                                              |
+| Fund valuation APIs      | `app/services/fund/valuationApi.js`                                     | 天天基金 fundgz, Sina, Supabase QDII fallback                                      |
+| Fund holdings APIs       | `app/services/fund/holdingsApi.js`                                      | pingzhongdata holdings + stock quote script injection                              |
+| Fund search APIs         | `app/services/fund/searchApi.js`                                        | Eastmoney search JSONP                                                             |
+| Market and sectors       | `app/services/fund/marketApi.js`, `sectorsApi.js`                       | Tencent indices, Supabase/Eastmoney sector data                                    |
+| Portfolio derivation     | `app/features/portfolio/usePortfolioScope.js`                           | Active scope, linked holdings, tab data                                            |
+| Display list/sorting     | `app/features/portfolio/useFundDisplayList.js`                          | Filtering and sort result models                                                   |
+| Table row models         | `app/features/portfolio/useFundTableRows.js`                            | PC/mobile table data                                                               |
+| Fund mutations           | `app/features/portfolio/useFundMutations.js`                            | Delete, move, reorder, group cleanup                                               |
+| Trading actions          | `app/features/trading/useTradingActions.js`                             | Buy/sell, pending queue, transaction mutations                                     |
+| DCA scheduling           | `app/features/trading/useDcaScheduler.js`                               | Scheduled pending trades                                                           |
+| Tags                     | `app/features/tags/useFundTags.js`                                      | `tags` storage key, tag pool/edit actions                                          |
+| Search box               | `app/features/search/useFundSearchBox.js`                               | Search UI state, chips, add fund trigger                                           |
+| Business storage         | `app/stores/storageStore.js`                                            | Unified localStorage access and cloud sync trigger                                 |
+| Modal state              | `app/stores/modalStore.js`                                              | All modal open flags/payloads                                                      |
+| Modal rendering          | `app/components/ModalsLayer.jsx`                                        | Central modal/drawer/dialog render layer                                           |
+| Cloud sync               | `app/hooks/useSyncManager.js`, `app/lib/supabase.js`                    | Supabase auth/config sync                                                          |
+| Refresh loop             | `app/hooks/useRefreshManager.js`                                        | Fund data refresh, holdings, charts, DCA processing                                |
+| OCR import               | `app/hooks/useScanImport.js`, `app/lib/ocr.js`                          | Tesseract + LLM parsing                                                            |
+| Query cache              | `app/lib/get-query-client.js`, `app/lib/query-keys.js`                  | TanStack Query cache shared with imperative APIs                                   |
+| Valuation time series    | `app/lib/valuationTimeseries.js`                                        | localStorage intraday valuation history                                            |
+| Styles                   | `app/globals.css`, `app/styles/*.css`                                   | Import barrel + split global CSS                                                   |
+| UI primitives            | `components/ui/`                                                        | shadcn/ui, radix-ui, lucide                                                        |
+| localStorage schema      | `doc/localStorage 数据结构.md`                                          | Stored data shape docs                                                             |
+| Supabase schema          | `doc/supabase.sql`                                                      | Cloud sync DB + RPCs                                                               |
+| Refactor plan            | `docs/plans/2026-06-17-preserve-ui-refactor.md`                         | Source plan                                                                        |
+| Refactor execution       | `docs/plans/2026-06-17-preserve-ui-refactor-execution-steps.md`         | Task-by-task runbook                                                               |
 
 ## CONVENTIONS
 
@@ -102,7 +111,7 @@ real-time-fund/
 - **Unified Data Access** — business localStorage reads/writes must go through `storageStore` / `useStorageStore`. Direct `window.localStorage` is allowed only inside `storageStore`, early theme bootstrap, Supabase/session cleanup, or clearly documented non-business exceptions.
 - **Cloud sync trigger** — only `SYNC_KEYS` in `app/stores/storageStore.js` trigger sync callbacks.
 - **Lodash type checks** — use lodash methods (`isArray`, `isObject`, `isString`, `isNumber`, `isBoolean`, `isNil`, `isEqual`, etc.) for data type checks. Native `typeof === 'undefined'` is allowed for global environment guards.
-- **Feature barrels** — import feature hooks through `app/features/*/index.js` from `page.jsx`.
+- **Feature barrels** — import feature hooks through `app/features/*/index.js` from `app/components/AppShell.jsx`.
 - **Fund API barrel** — preserve public exports through `app/api/fund.js`; add API implementations under `app/services/fund/`.
 - **shadcn/ui conventions** — new-york style, CSS variables, lucide icons, `cn()` from `lib/utils.js`.
 - **Linting only** — `npm run lint` is the main automated check; there is no test runner.
@@ -113,8 +122,8 @@ real-time-fund/
 All dialogs/drawers/modals follow the central modal architecture.
 
 1. **Modal state belongs in Zustand** — add open flags, payloads, and data to `app/stores/modalStore.js`.
-2. **Rendering belongs in ModalsLayer** — add modal rendering in `app/components/ModalsLayer.jsx`, not in `page.jsx`.
-3. **`page.jsx` must not subscribe to modal state** — use `useModalStore.getState()` inside handlers and pass page data/functions through `modalCbRef`.
+2. **Rendering belongs in ModalsLayer** — add modal rendering in `app/components/ModalsLayer.jsx` (rendered by `AppShell`), not in route pages.
+3. **`AppShell` must not subscribe to modal state** — use `useModalStore.getState()` inside handlers and pass data/functions through `modalCbRef`.
 4. **Callbacks/data cross the boundary through `callbacksRef`** — add page-level functions/data to `modalCbRef.current`, then consume as `cb.current.xxx` in `ModalsLayer`.
 5. **Low-frequency modals may be dynamic** — many modal components are loaded with `dynamic(() => import(...), { ssr: false })`.
 6. **Close/setter compatibility stays inside ModalsLayer** — close handlers should use `useModalStore.setState` / `getState`, not page `useState`.
@@ -125,7 +134,7 @@ Quick add-modal flow:
 1. Add state/default shape in `modalStore.js`.
 2. Create or update the modal component.
 3. Render it in `ModalsLayer.jsx`.
-4. If page-level callbacks/data are needed, register them in `modalCbRef.current` in `page.jsx`.
+4. If page-level callbacks/data are needed, register them in `modalCbRef.current` in `app/components/AppShell.jsx`.
 
 ## STORAGE RULES
 
@@ -136,7 +145,7 @@ Quick add-modal flow:
 - `tags` is a first-class sync key. Tag writes must preserve payload shape and sync event ordering.
 - `fundValuationTimeseries` is managed in `app/lib/valuationTimeseries.js`.
 - Theme bootstrap in `app/layout.jsx` intentionally reads `localStorage` early to avoid first-paint theme flicker.
-- Supabase auth/session cleanup in `page.jsx` may touch local/session storage as an auth exception.
+- Supabase auth/session cleanup in `app/components/AppShell.jsx` may touch local/session storage as an auth exception.
 
 ## STYLE RULES
 

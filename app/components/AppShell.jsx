@@ -1201,7 +1201,7 @@ export default function AppShell({ children }) {
     // 在移动端不裁剪也不修改 pcContainerWidth，直接保留原值
     let w = Number(containerWidth) || 1200;
     if (!targetIsMobile) {
-      w = Math.min(window.innerWidth, Math.max(600, w));
+      w = Math.min(Math.max(window.innerWidth, 2000), Math.max(600, w));
       setContainerWidth(w);
     }
 
@@ -1494,7 +1494,9 @@ export default function AppShell({ children }) {
               }
             }
             if (isNumber(mergedSettings.pcContainerWidth) && Number.isFinite(mergedSettings.pcContainerWidth)) {
-              const maxWidth = window.matchMedia('(max-width: 640px)').matches ? 99999 : window.innerWidth;
+              const maxWidth = window.matchMedia('(max-width: 640px)').matches
+                ? 99999
+                : Math.max(window.innerWidth, 2000);
               setContainerWidth(Math.min(maxWidth, Math.max(600, mergedSettings.pcContainerWidth)));
             }
             if (isBoolean(mergedSettings.showMarketIndexPc)) setShowMarketIndexPc(mergedSettings.showMarketIndexPc);

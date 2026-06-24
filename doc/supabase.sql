@@ -289,3 +289,112 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.check_and_increment_ocr_usage(int) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.check_and_increment_ocr_usage(int) TO service_role;
+
+
+-- ========================================================
+-- 4. 2.3.1 新增：最佳数据源 与 推荐标签 RPC
+-- --------------------------------------------------------
+-- 说明：上游作者并未把这两个函数的定义放进版本库，它们依赖服务端长期沉淀的
+-- 数据（各数据源的估值准确度统计、按板块推荐的标签）。以下定义按 app 的实际
+-- 调用契约编写，可直接部署：函数存在后 app 不再报 PGRST202/404；在你填充数据
+-- 之前，best-source 返回 null（前端自动回退到手动数据源），推荐标签由已有的
+-- fund_related + fund_topic 派生。请按你的真实数据模型调整下面的来源/JOIN。
+-- ========================================================
+
+-- --------------------------------------------------------
+-- 4.1 最佳数据源表 (fund_best_source)
+-- 每只基金一行：fund_code -> source（'fundgz' | 'sina_ds2' | 'sina_ds3'）
+-- 该表由你的服务端准确度统计任务写入；为空时函数返回 null。
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.fund_best_source (
+  fund_code text NOT NULL,
+  source text NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT fund_best_source_pkey PRIMARY KEY (fund_code),
+  CONSTRAINT fund_best_source_source_check CHECK (source IN ('fundgz', 'sina_ds2', 'sina_ds3'))
+) TABLESPACE pg_default;
+
+ALTER TABLE public.fund_best_source ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated users to select fund_best_source" ON public.fund_best_source;
+CREATE POLICY "Allow authenticated users to select fund_best_source"
+ON public.fund_best_source
+FOR SELECT
+TO authenticated
+USING (auth.uid() IS NOT NULL);
+
+-- --------------------------------------------------------
+-- 4.2 单只基金最佳数据源 (get_fund_best_source(p_fund_code))
+-- app 调用：rpc('get_fund_best_source', { p_fund_code }) -> { source } | null
+-- --------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_fund_best_source(p_fund_code text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_source text;
+BEGIN
+  SELECT source INTO v_source FROM public.fund_best_source WHERE fund_code = trim(p_fund_code);
+  IF v_source IS NULL THEN
+    RETURN NULL;
+  END IF;
+  RETURN jsonb_build_object('source', v_source);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_fund_best_source(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fund_best_source(text) TO service_role;
+
+-- --------------------------------------------------------
+-- 4.3 批量基金最佳数据源 (get_fund_best_source(p_fund_codes text[]))
+-- app 调用：rpc('get_fund_best_source', { p_fund_codes }) -> { "code": "source", ... }
+-- PostgREST 按入参名区分重载：p_fund_code(text) vs p_fund_codes(text[])。
+-- --------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_fund_best_source(p_fund_codes text[])
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result jsonb;
+BEGIN
+  SELECT coalesce(jsonb_object_agg(fund_code, source), '{}'::jsonb) INTO v_result
+  FROM public.fund_best_source
+  WHERE fund_code = ANY (SELECT trim(c) FROM unnest(p_fund_codes) AS c);
+  RETURN v_result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_fund_best_source(text[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fund_best_source(text[]) TO service_role;
+
+-- --------------------------------------------------------
+-- 4.4 推荐标签 (get_fund_recommended_tags(p_fund_code))
+-- app 调用：rpc('get_fund_recommended_tags', { p_fund_code }) -> [{ topic, sector_id }, ...]
+-- topic/sector_id 在前端按 ';' 拆分；这里每个相关板块返回一行（单值即可）。
+-- 来源：fund_related.related_sector（假定为 ';' 分隔的板块名）JOIN fund_topic.sector_name。
+-- 若你的 related_sector 不是板块名而是别的键，请相应调整 JOIN 条件。
+-- --------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_fund_recommended_tags(p_fund_code text)
+RETURNS TABLE(topic text, sector_id text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT ft.sector_name AS topic, ft.sector_id AS sector_id
+  FROM public.fund_related fr
+  CROSS JOIN LATERAL unnest(string_to_array(coalesce(fr.related_sector, ''), ';')) AS s(name)
+  JOIN public.fund_topic ft ON ft.sector_name = trim(s.name)
+  WHERE fr.fund_code = trim(p_fund_code)
+    AND ft.sector_name IS NOT NULL
+    AND ft.sector_id IS NOT NULL;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_fund_recommended_tags(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fund_recommended_tags(text) TO service_role;

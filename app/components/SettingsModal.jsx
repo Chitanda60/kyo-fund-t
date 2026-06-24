@@ -26,10 +26,13 @@ export default function SettingsModal({
   showGroupFundSearchPc = true,
   showGroupFundSearchMobile = true,
   dynamicStylePc = true,
-  dynamicStyleMobile = true
+  dynamicStyleMobile = true,
+  showGroupDropdownPc = false,
+  showGroupDropdownMobile = false
 }) {
   const isMobile = useIsMobile();
   const [sliderDragging, setSliderDragging] = useState(false);
+  const sliderDraggingRef = useRef(false);
   const [resetWidthConfirmOpen, setResetWidthConfirmOpen] = useState(false);
   const [localSeconds, setLocalSeconds] = useState(tempSeconds);
   const [localShowMarketIndexPc, setLocalShowMarketIndexPc] = useState(showMarketIndexPc);
@@ -38,10 +41,22 @@ export default function SettingsModal({
   const [localShowGroupFundSearchMobile, setLocalShowGroupFundSearchMobile] = useState(showGroupFundSearchMobile);
   const [localDynamicStylePc, setLocalDynamicStylePc] = useState(dynamicStylePc);
   const [localDynamicStyleMobile, setLocalDynamicStyleMobile] = useState(dynamicStyleMobile);
+  const [localShowGroupDropdownPc, setLocalShowGroupDropdownPc] = useState(showGroupDropdownPc);
+  const [localShowGroupDropdownMobile, setLocalShowGroupDropdownMobile] = useState(showGroupDropdownMobile);
+  const [localContainerWidth, setLocalContainerWidth] = useState(containerWidth);
   const pageWidthTrackRef = useRef(null);
+  const [viewWidth, setViewWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const maxWidth = Math.max(viewWidth, 2000);
 
-  const clampedWidth = Math.min(window.innerWidth, Math.max(600, Number(containerWidth) || 1200));
-  const pageWidthPercent = ((clampedWidth - 600) / (window.innerWidth - 600)) * 100;
+  useEffect(() => {
+    const update = () => setViewWidth(window.innerWidth);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const clampedWidth = Math.min(maxWidth, Math.max(600, Number(localContainerWidth) || 1200));
+  const widthRange = Math.max(1, maxWidth - 600);
+  const pageWidthPercent = ((clampedWidth - 600) / widthRange) * 100;
 
   const updateWidthByClientX = (clientX) => {
     if (!pageWidthTrackRef.current || !setContainerWidth) return;
@@ -49,14 +64,18 @@ export default function SettingsModal({
     if (!rect.width) return;
     const ratio = (clientX - rect.left) / rect.width;
     const clampedRatio = Math.min(1, Math.max(0, ratio));
-    const rawWidth = 600 + clampedRatio * (window.innerWidth - 600);
+    const rawWidth = 600 + clampedRatio * Math.max(0, maxWidth - 600);
     const snapped = Math.round(rawWidth / 10) * 10;
+    setLocalContainerWidth(snapped);
     setContainerWidth(snapped);
   };
 
   useEffect(() => {
     if (!sliderDragging) return;
-    const onPointerUp = () => setSliderDragging(false);
+    const onPointerUp = () => {
+      sliderDraggingRef.current = false;
+      setSliderDragging(false);
+    };
     document.addEventListener('pointerup', onPointerUp);
     document.addEventListener('pointercancel', onPointerUp);
     return () => {
@@ -93,6 +112,18 @@ export default function SettingsModal({
   useEffect(() => {
     setLocalDynamicStyleMobile(dynamicStyleMobile);
   }, [dynamicStyleMobile]);
+
+  useEffect(() => {
+    setLocalShowGroupDropdownPc(showGroupDropdownPc);
+  }, [showGroupDropdownPc]);
+
+  useEffect(() => {
+    setLocalShowGroupDropdownMobile(showGroupDropdownMobile);
+  }, [showGroupDropdownMobile]);
+
+  useEffect(() => {
+    setLocalContainerWidth(containerWidth);
+  }, [containerWidth]);
 
   return (
     <Dialog
@@ -185,16 +216,20 @@ export default function SettingsModal({
                   className="group relative"
                   style={{ flex: 1, height: 14, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                   onPointerDown={(e) => {
+                    sliderDraggingRef.current = true;
                     setSliderDragging(true);
                     updateWidthByClientX(e.clientX);
                     e.currentTarget.setPointerCapture?.(e.pointerId);
                   }}
                   onPointerMove={(e) => {
-                    if (!sliderDragging) return;
+                    if (!sliderDraggingRef.current) return;
                     updateWidthByClientX(e.clientX);
                   }}
                 >
-                  <Progress value={pageWidthPercent} />
+                  <Progress
+                    value={pageWidthPercent}
+                    indicatorClassName="!bg-none bg-[var(--primary)] dark:bg-[var(--primary)] !transition-none"
+                  />
                   <div
                     className="pointer-events-none absolute top-1/2 -translate-y-1/2"
                     style={{ left: `${pageWidthPercent}%`, transform: 'translate(-50%, -50%)' }}
@@ -209,57 +244,79 @@ export default function SettingsModal({
             </div>
           )}
 
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
-              显示大盘指数
+          <div className="row" style={{ gap: 16, marginBottom: 16 }}>
+            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
+                显示大盘指数
+              </div>
+              <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
+                <Switch
+                  checked={isMobile ? localShowMarketIndexMobile : localShowMarketIndexPc}
+                  className="ml-2 scale-125"
+                  onCheckedChange={(checked) => {
+                    const nextValue = Boolean(checked);
+                    if (isMobile) setLocalShowMarketIndexMobile(nextValue);
+                    else setLocalShowMarketIndexPc(nextValue);
+                  }}
+                  aria-label="显示大盘指数"
+                />
+              </div>
             </div>
-            <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
-              <Switch
-                checked={isMobile ? localShowMarketIndexMobile : localShowMarketIndexPc}
-                className="ml-2 scale-125"
-                onCheckedChange={(checked) => {
-                  const nextValue = Boolean(checked);
-                  if (isMobile) setLocalShowMarketIndexMobile(nextValue);
-                  else setLocalShowMarketIndexPc(nextValue);
-                }}
-                aria-label="显示大盘指数"
-              />
+
+            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
+                显示分组内基金搜索
+              </div>
+              <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
+                <Switch
+                  checked={isMobile ? localShowGroupFundSearchMobile : localShowGroupFundSearchPc}
+                  className="ml-2 scale-125"
+                  onCheckedChange={(checked) => {
+                    const nextValue = Boolean(checked);
+                    if (isMobile) setLocalShowGroupFundSearchMobile(nextValue);
+                    else setLocalShowGroupFundSearchPc(nextValue);
+                  }}
+                  aria-label="显示分组内基金搜索"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
-              显示分组内基金搜索
+          <div className="row" style={{ gap: 16, marginBottom: 16 }}>
+            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
+                减少动态样式效果
+              </div>
+              <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
+                <Switch
+                  checked={isMobile ? !localDynamicStyleMobile : !localDynamicStylePc}
+                  className="ml-2 scale-125"
+                  onCheckedChange={(checked) => {
+                    const nextValue = !checked;
+                    if (isMobile) setLocalDynamicStyleMobile(nextValue);
+                    else setLocalDynamicStylePc(nextValue);
+                  }}
+                  aria-label="减少动态样式效果"
+                />
+              </div>
             </div>
-            <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
-              <Switch
-                checked={isMobile ? localShowGroupFundSearchMobile : localShowGroupFundSearchPc}
-                className="ml-2 scale-125"
-                onCheckedChange={(checked) => {
-                  const nextValue = Boolean(checked);
-                  if (isMobile) setLocalShowGroupFundSearchMobile(nextValue);
-                  else setLocalShowGroupFundSearchPc(nextValue);
-                }}
-                aria-label="显示分组内基金搜索"
-              />
-            </div>
-          </div>
 
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
-              减少动态样式效果
-            </div>
-            <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
-              <Switch
-                checked={isMobile ? !localDynamicStyleMobile : !localDynamicStylePc}
-                className="ml-2 scale-125"
-                onCheckedChange={(checked) => {
-                  const nextValue = !checked;
-                  if (isMobile) setLocalDynamicStyleMobile(nextValue);
-                  else setLocalDynamicStylePc(nextValue);
-                }}
-                aria-label="减少动态样式效果"
-              />
+            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>
+                下拉形式展示分组
+              </div>
+              <div className="row" style={{ justifyContent: 'flex-start', alignItems: 'center' }}>
+                <Switch
+                  checked={isMobile ? localShowGroupDropdownMobile : localShowGroupDropdownPc}
+                  className="ml-2 scale-125"
+                  onCheckedChange={(checked) => {
+                    const nextValue = Boolean(checked);
+                    if (isMobile) setLocalShowGroupDropdownMobile(nextValue);
+                    else setLocalShowGroupDropdownPc(nextValue);
+                  }}
+                  aria-label="下拉形式展示分组"
+                />
+              </div>
             </div>
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
@@ -303,7 +360,9 @@ export default function SettingsModal({
                   isMobile ? localShowMarketIndexMobile : localShowMarketIndexPc,
                   isMobile ? localShowGroupFundSearchMobile : localShowGroupFundSearchPc,
                   isMobile,
-                  isMobile ? localDynamicStyleMobile : localDynamicStylePc
+                  isMobile ? localDynamicStyleMobile : localDynamicStylePc,
+                  localContainerWidth,
+                  isMobile ? localShowGroupDropdownMobile : localShowGroupDropdownPc
                 )
               }
               disabled={localSeconds < 30}
@@ -312,21 +371,22 @@ export default function SettingsModal({
             </button>
           </div>
         </div>
+        {resetWidthConfirmOpen && onResetContainerWidth && (
+          <ConfirmModal
+            title="重置页面宽度"
+            message="是否重置页面宽度为默认值 1200px？"
+            icon={<ResetIcon width="20" height="20" className="shrink-0 text-[var(--primary)]" />}
+            confirmVariant="primary"
+            onConfirm={() => {
+              onResetContainerWidth();
+              setLocalContainerWidth(1200);
+              setResetWidthConfirmOpen(false);
+            }}
+            onCancel={() => setResetWidthConfirmOpen(false)}
+            confirmText="重置"
+          />
+        )}
       </DialogContent>
-      {resetWidthConfirmOpen && onResetContainerWidth && (
-        <ConfirmModal
-          title="重置页面宽度"
-          message="是否重置页面宽度为默认值 1200px？"
-          icon={<ResetIcon width="20" height="20" className="shrink-0 text-[var(--primary)]" />}
-          confirmVariant="primary"
-          onConfirm={() => {
-            onResetContainerWidth();
-            setResetWidthConfirmOpen(false);
-          }}
-          onCancel={() => setResetWidthConfirmOpen(false)}
-          confirmText="重置"
-        />
-      )}
     </Dialog>
   );
 }

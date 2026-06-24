@@ -3,10 +3,11 @@
 import dayjs from 'dayjs';
 import { toast as sonnerToast } from 'sonner';
 import MineTab from '@/app/components/MineTab';
+import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 
 // Render-only content for the "mine" main tab.
 // State/handlers come from page.jsx via the `rt` runtime bundle (moves to context in Task 3).
-export default function MinePageContent({ rt }) {
+export default function MinePageContent() {
   const {
     mainTab,
     isMobile,
@@ -21,7 +22,7 @@ export default function MinePageContent({ rt }) {
     setFeedbackOpen,
     setDonateOpen,
     _ms
-  } = rt;
+  } = useAppRuntime();
 
   return (
     <MineTab

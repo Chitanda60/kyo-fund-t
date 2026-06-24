@@ -14,14 +14,15 @@ import githubImg from '@/app/assets/github.svg';
 import HomePageContent from './HomePageContent';
 import MarketPageContent from './MarketPageContent';
 import MinePageContent from './MinePageContent';
+import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 
 const UpdateChecker = dynamic(() => import('@/app/components/UpdateChecker'), { ssr: false });
 
 // Shared chrome (announcement + navbar + market index) for the home/market panel,
-// plus the three render-only main-tab content components. State comes from page.jsx
-// via the `rt` runtime bundle (moves to context in Task 3). Single-route behavior is
-// preserved via the existing display:contents / visible guards.
-export default function MainTabsContent({ rt }) {
+// plus the three render-only main-tab content components. State comes from the
+// persistent AppShell via AppRuntimeContext. Single-route behavior is preserved
+// via the existing display:contents / visible guards.
+export default function MainTabsContent() {
   const {
     mobileHomeTabVisible,
     refreshing,
@@ -67,7 +68,7 @@ export default function MainTabsContent({ rt }) {
     shouldShowMarketIndex,
     triggerCustomSettingsSync,
     hasVisitedMarketTab
-  } = rt;
+  } = useAppRuntime();
 
   return (
     <>
@@ -266,11 +267,11 @@ export default function MainTabsContent({ rt }) {
               refreshing={refreshing}
             />
           )}
-          <HomePageContent rt={rt} />
-          {hasVisitedMarketTab && <MarketPageContent rt={rt} />}
+          <HomePageContent />
+          {hasVisitedMarketTab && <MarketPageContent />}
         </>
       </div>
-      {isMobile && <MinePageContent rt={rt} />}
+      {isMobile && <MinePageContent />}
     </>
   );
 }

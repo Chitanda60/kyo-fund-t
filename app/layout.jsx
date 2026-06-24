@@ -6,6 +6,7 @@ import PwaRegister from './components/PwaRegister';
 import ThemeColorSync from './components/ThemeColorSync';
 import ClientErrorBoundary from './components/ClientErrorBoundary';
 import GlobalClientErrorHandler from './components/GlobalClientErrorHandler';
+import AppShell from './components/AppShell';
 import { QueryClientProviderWrapper } from './providers/query-client-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import packageJson from '../package.json';
@@ -45,7 +46,7 @@ export default function RootLayout({ children }) {
         <QueryClientProviderWrapper>
           <TooltipProvider>
             <ClientErrorBoundary toastTitle="页面渲染异常" toastId="app-render-error" closeModals>
-              {children}
+              <AppShell>{children}</AppShell>
             </ClientErrorBoundary>
           </TooltipProvider>
         </QueryClientProviderWrapper>

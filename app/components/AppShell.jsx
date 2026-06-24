@@ -1,0 +1,2166 @@
+'use client';
+
+import { useEffect, useRef, useState, useMemo, useCallback, useTransition, useDeferredValue } from 'react';
+import dynamic from 'next/dynamic';
+import SearchBar from '../components/SearchBar';
+import SummaryTabContent from '../components/SummaryTabContent';
+import FundListView from '../components/FundListView';
+import NavLayout from '../components/NavLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+
+import { createAvatar } from '@dicebear/core';
+import { identicon } from '@dicebear/collection';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import { isArray, isBoolean, isFunction, isNumber, isObject, isPlainObject, isString } from 'lodash';
+import { v4 as uuidv4 } from 'uuid';
+import { toast as sonnerToast } from 'sonner';
+
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Announcement from '../components/Announcement';
+import EmptyStateCard from '../components/EmptyStateCard';
+
+import GroupSummary from '../components/GroupSummary';
+import {
+  CloseIcon,
+  GridIcon,
+  ListIcon,
+  MoonIcon,
+  PlusIcon,
+  SettingsIcon,
+  SortIcon,
+  SunIcon
+} from '../components/Icons';
+import UserMenu from '../components/UserMenu';
+import RefreshButton from '../components/RefreshButton';
+const UpdateChecker = dynamic(() => import('../components/UpdateChecker'), { ssr: false });
+import MarketIndexAccordion from '../components/MarketIndexAccordion';
+import githubImg from '../assets/github.svg';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { getAllValuationSeries } from '../lib/valuationTimeseries';
+import { asyncPool } from '../lib/asyncHelper';
+import { fetchFundPeriodReturns } from '../api/fund';
+import MineTab from '../components/MineTab';
+import MarketTab from '../components/MarketTab';
+import SearchFund from '../components/SearchFund';
+import { useTheme } from '../hooks/useTheme';
+import { useTradingDay } from '../hooks/useTradingDay';
+import { useHoldingProfit } from '../hooks/useHoldingProfit';
+import { useGroupActions } from '../hooks/useGroupActions';
+import { useSummaryCalculations } from '../hooks/useSummaryCalculations';
+import { useNavHeights } from '../hooks/useNavHeights';
+import { useScanImport } from '../hooks/useScanImport';
+import { useRefreshManager } from '../hooks/useRefreshManager';
+import { useSyncManager, normalizeFundDailyEarningsScoped } from '../hooks/useSyncManager';
+import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  useUserStore,
+  clearAuthUser,
+  setAuthUser,
+  useStorageStore,
+  storageStore,
+  useModalStore,
+  useSettingsStore
+} from '../stores';
+import ModalsLayer from '../components/ModalsLayer';
+
+import {
+  DEFAULT_SORT_RULES,
+  SORT_DISPLAY_MODES,
+  SUMMARY_TAB_ID,
+  SUMMARY_SOURCE_GLOBAL,
+  DEFAULT_FUND_TAG_THEME
+} from '@/app/constants';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isSameOrAfter);
+
+import {
+  nowInTz,
+  formatDate,
+  normalizeFundTagTheme,
+  stripLegacyTagsFromFundObject,
+  getFundCodesFromTagRecord,
+  sanitizeTagRowForStorage,
+  seedGroupHoldingsFromGlobal,
+  migrateDcaPlansToScoped
+} from '../lib/fundHelpers';
+
+import { dedupeByCode, normalizeCode, cleanCodeArray } from '../lib/normalize';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import {
+  usePortfolioScope,
+  usePortfolioScopeCleanup,
+  useFundDisplayList,
+  useFundTableRows,
+  useFundMutations
+} from '../features/portfolio';
+import { useFundTags } from '../features/tags';
+import { useTradingActions, useDcaScheduler } from '../features/trading';
+import { useFundSearchBox } from '../features/search';
+import { AppRuntimeProvider } from '../contexts/AppRuntimeContext';
+
+// Persistent client shell: owns all former page.jsx state/effects/handlers,
+// mounted once from app/layout.jsx so it survives route navigation. Page route
+// files render only their content and read data/actions from AppRuntimeContext.
+export default function AppShell({ children }) {
+  const {
+    funds,
+    setFunds,
+    initFunds,
+    groups,
+    setGroups,
+    initGroups,
+    favorites,
+    setFavorites,
+    initFavorites,
+    collapsedCodes,
+    setCollapsedCodes,
+    collapsedTrends,
+    setCollapsedTrends,
+    collapsedValuationTrends,
+    setCollapsedValuationTrends,
+    collapsedEarnings,
+    setCollapsedEarnings,
+    refreshMs,
+    setRefreshMs,
+    holdings,
+    setHoldings,
+    groupHoldings,
+    setGroupHoldings,
+    pendingTrades,
+    setPendingTrades,
+    transactions,
+    setTransactions,
+    dcaPlans,
+    setDcaPlans,
+    customSettings,
+    setCustomSettings,
+    fundDailyEarnings,
+    setFundDailyEarnings,
+    valuationSeries,
+    setValuationSeries,
+    initCollapsed,
+    initRefreshMs,
+    initHoldings,
+    initGroupHoldings,
+    initPendingTrades,
+    initTransactions,
+    initDcaPlans,
+    initCustomSettings,
+    initFundDailyEarnings,
+    initFundDividends,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    pcSortDisplayMode,
+    setPcSortDisplayMode,
+    mobileSortDisplayMode,
+    setMobileSortDisplayMode,
+    sortRules,
+    setSortRules,
+    initSort
+  } = useStorageStore();
+  /** 基金标签（独立 localStorage 键 `tags`）：{ id, name, theme, fundCodes: string[] }[] */
+  const [fundTagRecords, setFundTagRecords] = useState([]);
+  /**
+   * 每只基金已选标签实例：仅由 `tags` 推导生成（不再持久化 fundTagLists）。
+   * 形状保持为 { [code]: {id,name,theme}[] }，便于复用现有组件接口。
+   */
+  const fundTagListsByCode = useMemo(() => {
+    const out = {};
+    const codeSet = new Set((isArray(funds) ? funds : []).map((f) => String(f?.code ?? '').trim()).filter(Boolean));
+    for (const r of fundTagRecords || []) {
+      if (!r || !isObject(r)) continue;
+      const id = String(r.id ?? '').trim();
+      const name = String(r.name ?? '').trim();
+      if (!id || !name) continue;
+      const theme = normalizeFundTagTheme(r.theme);
+      for (const c of getFundCodesFromTagRecord(r)) {
+        if (!codeSet.has(c)) continue;
+        if (!out[c]) out[c] = [];
+        out[c].push({ id, name, theme });
+      }
+    }
+    Object.keys(out).forEach((c) => {
+      out[c] = out[c].filter((x) => x?.name).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    });
+    return out;
+  }, [fundTagRecords, funds]);
+
+  const [error, setError] = useState('');
+  const isLoggingOutRef = useRef(false);
+  const isExplicitLoginRef = useRef(false);
+
+  // 刷新频率与布局配置状态
+  const {
+    tempSeconds,
+    setTempSeconds,
+    containerWidth,
+    setContainerWidth,
+    showMarketIndexPc,
+    setShowMarketIndexPc,
+    showMarketIndexMobile,
+    setShowMarketIndexMobile,
+    showGroupFundSearchPc,
+    setShowGroupFundSearchPc,
+    showGroupFundSearchMobile,
+    setShowGroupFundSearchMobile,
+    dynamicStylePc,
+    setDynamicStylePc,
+    dynamicStyleMobile,
+    setDynamicStyleMobile,
+    isGroupSummarySticky,
+    setIsGroupSummarySticky,
+    syncFromCustomSettings
+  } = useSettingsStore();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    syncFromCustomSettings(customSettings);
+  }, [customSettings, syncFromCustomSettings]);
+
+  // 自选状态
+  const [currentTab, setCurrentTab] = useState('all');
+  const [, startTransition] = useTransition();
+  const hasLocalTabInitRef = useRef(false);
+
+  // 调用 store 的 initSort，在 mount 时恢复持久化的排序偏好
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      initSort();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 当用户关闭某个排序规则时，如果当前 sortBy 不再可用，则自动切换到第一个启用的规则
+  useEffect(() => {
+    const enabledRules = (sortRules || []).filter((r) => r.enabled);
+    const enabledIds = enabledRules.map((r) => r.id);
+    if (!enabledIds.length) {
+      // 至少保证默认存在
+      setSortRules(DEFAULT_SORT_RULES);
+      setSortBy('default');
+      return;
+    }
+    if (!enabledIds.includes(sortBy)) {
+      setSortBy(enabledIds[0]);
+    }
+  }, [sortRules, sortBy]);
+
+  // 视图模式
+  const [viewMode, setViewMode] = useState('list'); // card, list
+  // 全局隐藏金额状态（影响分组汇总、列表和卡片）
+  const [maskAmounts, setMaskAmounts] = useState(false);
+
+  // 用户认证状态（Supabase 会话仍由客户端持久化；用户信息由 zustand 全局管理）
+  const user = useUserStore((s) => s.user);
+  const userAvatar = useMemo(() => {
+    if (!user?.id) return '';
+    return createAvatar(identicon, {
+      seed: user.id,
+      size: 80
+    }).toDataUri();
+  }, [user?.id]);
+
+  // 分组内基金列表搜索（点击按钮后才应用）
+  const [groupFundSearchTerm, setGroupFundSearchTerm] = useState('');
+  const deferredGroupFundSearchTerm = useDeferredValue(groupFundSearchTerm);
+
+  // --- 主题管理（抽离到 useTheme）---
+  const { theme, showThemeTransition, setShowThemeTransition, handleThemeToggle } = useTheme();
+
+  // 动态计算 Navbar 和 FilterBar 高度（抽离到 useNavHeights）
+  // 注意：isMobile 在此处尚未声明，shouldShowMarketIndex 由 page.jsx 内独立 useEffect 处理
+  const containerRef = useRef(null);
+  const { navbarRef, filterBarRef, navbarHeight, filterBarHeight } = useNavHeights({ groups, currentTab });
+
+  const [percentModes, setPercentModes] = useState({}); // { [code]: boolean }
+  const [todayPercentModes, setTodayPercentModes] = useState({}); // { [code]: boolean }
+
+  const tabsRef = useRef(null);
+
+  // ---- Modal store setter compatibility wrappers ----
+  const _ms = useModalStore.setState;
+  const _gs = useModalStore.getState;
+  const setSettingsOpen = (v) => _ms({ settingsOpen: isFunction(v) ? v(_gs().settingsOpen) : v });
+  const setGroupModalOpen = (v) => _ms({ groupModalOpen: isFunction(v) ? v(_gs().groupModalOpen) : v });
+  const setGroupManageOpen = (v) => _ms({ groupManageOpen: isFunction(v) ? v(_gs().groupManageOpen) : v });
+  const setAddFundToGroupOpen = (v) => _ms({ addFundToGroupOpen: isFunction(v) ? v(_gs().addFundToGroupOpen) : v });
+  const setSortSettingOpen = (v) => _ms({ sortSettingOpen: isFunction(v) ? v(_gs().sortSettingOpen) : v });
+  const setLoginModalOpen = (v) => _ms({ loginModalOpen: isFunction(v) ? v(_gs().loginModalOpen) : v });
+  const setLoginInitialError = (v) => _ms({ loginInitialError: isFunction(v) ? v(_gs().loginInitialError) : v });
+  const setFeedbackOpen = (v) => _ms({ feedbackOpen: isFunction(v) ? v(_gs().feedbackOpen) : v });
+  const setFeedbackNonce = (v) => _ms({ feedbackNonce: isFunction(v) ? v(_gs().feedbackNonce) : v });
+  const setDonateOpen = (v) => _ms({ donateOpen: isFunction(v) ? v(_gs().donateOpen) : v });
+  const setIsLogoutConfirmOpen = (v) => _ms({ isLogoutConfirmOpen: isFunction(v) ? v(_gs().isLogoutConfirmOpen) : v });
+  const setPortfolioEarningsOpen = (v) =>
+    _ms({ portfolioEarningsOpen: isFunction(v) ? v(_gs().portfolioEarningsOpen) : v });
+  const setMobileFundDrawerOpen = (v) =>
+    _ms({ mobileFundDrawerOpen: isFunction(v) ? v(_gs().mobileFundDrawerOpen) : v });
+  const setTutorialDrawerOpen = (v) => _ms({ tutorialDrawerOpen: isFunction(v) ? v(_gs().tutorialDrawerOpen) : v });
+  const setUpdateLogOpen = (v) => _ms({ updateLogOpen: isFunction(v) ? v(_gs().updateLogOpen) : v });
+  const setMobileTableSettingModalOpen = (v) =>
+    _ms({ mobileTableSettingModalOpen: isFunction(v) ? v(_gs().mobileTableSettingModalOpen) : v });
+  const setIsUpdateModalOpen = (v) => _ms({ isUpdateModalOpen: isFunction(v) ? v(_gs().isUpdateModalOpen) : v });
+  const setHoldingModal = (v) => _ms({ holdingModal: isFunction(v) ? v(_gs().holdingModal) : v });
+  const setActionModal = (v) => _ms({ actionModal: isFunction(v) ? v(_gs().actionModal) : v });
+  const setTradeModal = (v) => _ms({ tradeModal: isFunction(v) ? v(_gs().tradeModal) : v });
+  const setConvertModal = (v) => _ms({ convertModal: isFunction(v) ? v(_gs().convertModal) : v });
+  const setDividendMethodModal = (v) => _ms({ dividendMethodModal: isFunction(v) ? v(_gs().dividendMethodModal) : v });
+  const setSelectHoldingGroupModal = (v) =>
+    _ms({ selectHoldingGroupModal: isFunction(v) ? v(_gs().selectHoldingGroupModal) : v });
+  const setDataSourceModal = (v) => _ms({ dataSourceModal: isFunction(v) ? v(_gs().dataSourceModal) : v });
+  const setDcaModal = (v) => _ms({ dcaModal: isFunction(v) ? v(_gs().dcaModal) : v });
+  const setClearConfirm = (v) => _ms({ clearConfirm: isFunction(v) ? v(_gs().clearConfirm) : v });
+  const setHoldingMigrateDialog = (v) =>
+    _ms({ holdingMigrateDialog: isFunction(v) ? v(_gs().holdingMigrateDialog) : v });
+  const setHistoryModal = (v) => _ms({ historyModal: isFunction(v) ? v(_gs().historyModal) : v });
+  const setSuccessModal = (v) => _ms({ successModal: isFunction(v) ? v(_gs().successModal) : v });
+
+  const fundDetailDrawerCloseRef = useRef(null); // 由 MobileFundTable 注入，用于确认删除时关闭基金详情 Drawer
+  const fundDetailDialogCloseRef = useRef(null); // 由 PcFundTable 注入，用于确认删除时关闭基金详情 Dialog
+  const pcBatchClearSelectionRef = useRef(null); // 由 PcFundTable 注入，批量删除二次确认成功后清空表格多选
+  const mobileBatchClearSelectionRef = useRef(null); // 由 MobileFundTable 注入，批量删除二次确认成功后退出编辑态
+
+  const todayStr = formatDate();
+
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const isDynamic = isMobile ? dynamicStyleMobile : dynamicStylePc;
+      if (!isDynamic) {
+        document.documentElement.classList.add('reduce-dynamic-style');
+      } else {
+        document.documentElement.classList.remove('reduce-dynamic-style');
+      }
+    }
+  }, [isMobile, dynamicStyleMobile, dynamicStylePc]);
+
+  const [mainTab, setMainTab] = useState('home');
+  const [hasVisitedMarketTab, setHasVisitedMarketTab] = useState(false);
+
+  useEffect(() => {
+    if (mainTab === 'market' && !hasVisitedMarketTab) {
+      setHasVisitedMarketTab(true);
+    }
+  }, [mainTab, hasVisitedMarketTab]);
+
+  const [mobileBottomNavHidden, setMobileBottomNavHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileFundDrawerOpen(false);
+      setMobileTableSettingModalOpen(false);
+    }
+  }, [isMobile]);
+
+  const handleFundCardDrawerOpenChange = useCallback((open) => {
+    setMobileFundDrawerOpen(Boolean(open));
+  }, []);
+
+  const handleMobileSettingModalOpenChange = useCallback((open) => {
+    setMobileTableSettingModalOpen(Boolean(open));
+  }, []);
+
+  const shouldShowMarketIndex = (isMobile ? showMarketIndexMobile : showMarketIndexPc) || mainTab === 'market';
+  const shouldShowGroupFundSearch = isMobile ? showGroupFundSearchMobile : showGroupFundSearchPc;
+
+  // 交易日检测（抽离到 useTradingDay）
+  const { isTradingDay } = useTradingDay();
+
+  const activeGroupId =
+    currentTab !== 'all' &&
+    currentTab !== 'fav' &&
+    currentTab !== SUMMARY_TAB_ID &&
+    groups.some((g) => g.id === currentTab)
+      ? currentTab
+      : null;
+
+  // 计算持仓收益（抽离至自定义 Hook 管理）
+  const { getHoldingProfit } = useHoldingProfit({ activeGroupId });
+
+  const {
+    groupsWithHoldings,
+    summaryTabPortfolioTotals,
+    showPortfolioSummaryTab,
+    summaryMergedHoldings,
+    summaryHoldingSourceGroupByCode,
+    summaryCardItems
+  } = useSummaryCalculations({ currentTab, setCurrentTab, getHoldingProfit });
+
+  const getHoldingProfitForTab = useCallback(
+    (fund, holding) => {
+      if (currentTab === SUMMARY_TAB_ID) {
+        const src = summaryHoldingSourceGroupByCode[fund?.code];
+        if (src === undefined) return null;
+        const scopeGid = src === SUMMARY_SOURCE_GLOBAL ? null : src;
+        return getHoldingProfit(fund, holding, scopeGid);
+      }
+      return getHoldingProfit(fund, holding);
+    },
+    [currentTab, summaryHoldingSourceGroupByCode, getHoldingProfit]
+  );
+
+  /**
+   * 全部/自选：当全局 holdings 无该基金持仓，但自定义分组存在持仓时，
+   * 仅用于展示地将其它分组的持仓汇总到当前 tab（不写入 localStorage）。
+   */
+  const {
+    linkedHoldingsForAllFav,
+    currentFundDailyEarnings,
+    portfolioDailySeries,
+    holdingsForTabWithLinked,
+    dcaPlansForTab,
+    transactionsForTab,
+    getScopedGroupId,
+    getScopedHolding,
+    getScopedDcaPlan,
+    activeGroupCodeSet
+  } = usePortfolioScope({
+    currentTab,
+    activeGroupId,
+    groups,
+    funds,
+    holdings,
+    groupHoldings,
+    dcaPlans,
+    transactions,
+    fundDailyEarnings,
+    summaryMergedHoldings,
+    summaryHoldingSourceGroupByCode,
+    groupsWithHoldings,
+    getHoldingProfit
+  });
+
+  // 联动 linked 基金的全局 fundDailyEarnings 清理副作用（原 page.jsx 内 effect 抽离至此 Hook）
+  usePortfolioScopeCleanup({ linkedHoldingsForAllFav, setFundDailyEarnings });
+
+  // 当前 tab 作用域下的基金（不包含“列表搜索”过滤）
+  const scopedFunds = useMemo(() => {
+    return funds.filter((f) => {
+      if (currentTab === 'all') return true;
+      if (currentTab === 'fav') return favorites.has(f.code);
+      if (!activeGroupCodeSet) return true;
+      return activeGroupCodeSet.has(f.code);
+    });
+  }, [funds, currentTab, favorites, activeGroupCodeSet]);
+
+  const [fundExtraDataByCode, setFundExtraDataByCode] = useState({});
+  const fundExtraDataCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    // 始终尝试为当前列表基金获取额外数据（阶段涨跌幅、连涨连跌），用于展示图标或排序
+    const codes = scopedFunds.map((f) => f.code);
+    if (codes.length === 0) return;
+
+    let cancelled = false;
+    const missing = [];
+    const cachedBatch = {};
+
+    for (const code of codes) {
+      if (!fundExtraDataCacheRef.current.has(code)) {
+        missing.push(code);
+      } else {
+        cachedBatch[code] = fundExtraDataCacheRef.current.get(code);
+      }
+    }
+
+    if (Object.keys(cachedBatch).length > 0) {
+      setFundExtraDataByCode((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [code, value] of Object.entries(cachedBatch)) {
+          if (next[code] !== value) {
+            next[code] = value;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+
+    if (missing.length === 0) return;
+
+    (async () => {
+      // 这里的 fetchFundPeriodReturns 已包含阶段涨跌幅和连涨连跌数据
+      await asyncPool(4, missing, async (code) => {
+        const value = await fetchFundPeriodReturns(code);
+        fundExtraDataCacheRef.current.set(code, value);
+        if (cancelled) return;
+        setFundExtraDataByCode((prev) => {
+          if (prev[code] === value) return prev;
+          return { ...prev, [code]: value };
+        });
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scopedFunds]);
+
+  const { displayFunds } = useFundDisplayList({
+    scopedFunds,
+    currentTab,
+    groups,
+    sortBy,
+    sortOrder,
+    holdingsForTabWithLinked,
+    getHoldingProfitForTab,
+    deferredGroupFundSearchTerm,
+    shouldShowGroupFundSearch,
+    currentFundDailyEarnings,
+    fundExtraDataByCode,
+    todayStr,
+    fundTagListsByCode
+  });
+
+  const { groupTotalHoldingAmount, pendingCodesForTab, pcFundTableData } = useFundTableRows({
+    displayFunds,
+    holdingsForTabWithLinked,
+    isTradingDay,
+    todayStr,
+    getHoldingProfitForTab,
+    dcaPlansForTab,
+    pendingTrades,
+    activeGroupId,
+    currentFundDailyEarnings,
+    currentTab,
+    summaryHoldingSourceGroupByCode,
+    linkedHoldingsForAllFav,
+    fundTagListsByCode
+  });
+
+  // 自动滚动选中 Tab 到可视区域
+  useEffect(() => {
+    if (!tabsRef.current) return;
+    if (currentTab === 'all' || currentTab === SUMMARY_TAB_ID) {
+      tabsRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+      return;
+    }
+    const activeTab = tabsRef.current.querySelector('.tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [currentTab]);
+
+  // 鼠标拖拽滚动逻辑
+  const dragStateRef = useRef({ isDragging: false, startX: 0, startY: 0, hasDragged: false });
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const handleAction = (type, fund, groupIdOverride) => {
+    const groupId = getScopedGroupId(groupIdOverride);
+    if (type !== 'history') {
+      setActionModal({ open: false, fund: null });
+    }
+
+    if (type === 'edit') {
+      setHoldingModal({ open: true, fund, groupId });
+    } else if (type === 'clear') {
+      setClearConfirm({ fund, groupId });
+    } else if (type === 'buy' || type === 'sell') {
+      setTradeModal({ open: true, fund, type, groupId });
+    } else if (type === 'history') {
+      setHistoryModal({ open: true, fund, groupId });
+    } else if (type === 'dca') {
+      setDcaModal({ open: true, fund, groupId });
+    } else if (type === 'convert') {
+      setConvertModal({ open: true, fund, groupId });
+    } else if (type === 'dividend') {
+      setDividendMethodModal({ open: true, fund, groupId });
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (!tabsRef.current) return;
+    dragStateRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, hasDragged: false };
+  };
+
+  const handleMouseLeaveOrUp = () => {
+    dragStateRef.current.isDragging = false;
+  };
+
+  const handleMouseMove = (e) => {
+    const ds = dragStateRef.current;
+    if (!ds.isDragging || !tabsRef.current) return;
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    if (!ds.hasDragged && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+    ds.hasDragged = true;
+    e.preventDefault();
+    tabsRef.current.scrollLeft -= e.movementX;
+  };
+
+  const handleWheel = (e) => {
+    if (!tabsRef.current) return;
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    tabsRef.current.scrollLeft += delta;
+  };
+
+  const handleTabClick = (tabId) => {
+    if (dragStateRef.current.hasDragged) return;
+    startTransition(() => setCurrentTab(tabId));
+  };
+
+  const updateTabOverflow = () => {
+    if (!tabsRef.current) return;
+    const el = tabsRef.current;
+    setCanLeft(el.scrollLeft > 0);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    updateTabOverflow();
+    let rafId = null;
+    const onResize = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateTabOverflow();
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [groups, funds.length, favorites.size]);
+
+  // 轻提示 (Toast)
+  const showToast = (message, type = 'info') => {
+    if (type === 'success') {
+      sonnerToast.success(message);
+    } else if (type === 'error') {
+      sonnerToast.error(message);
+    } else {
+      sonnerToast.info(message);
+    }
+  };
+
+  const {
+    handleSaveHolding,
+    handleClearConfirm,
+    processPendingQueue,
+    handleDeleteTransaction,
+    handleMergeAllGroupTransactionsToCurrent,
+    handleAddHistory,
+    handleTrade
+  } = useTradingActions({ currentTab, groups, getScopedGroupId, showToast });
+
+  // 定投计划自动生成买入队列的逻辑会在 storageHelper 定义之后实现
+
+  const handleOpenLogin = () => {
+    if (!isSupabaseConfigured) {
+      showToast('未配置 Supabase，无法登录', 'error');
+      return;
+    }
+    setLoginModalOpen(true);
+  };
+
+  const {
+    setScanConfirmModalOpen,
+    scannedFunds,
+    setScannedFunds,
+    selectedScannedCodes,
+    setSelectedScannedCodes,
+    isScanning,
+    scanImportProgress,
+    scanProgress,
+    isOcrScan,
+    setIsOcrScan,
+    fileInputRef,
+    handleScanClick,
+    handleScanPick,
+    handleRetryOcr,
+    cancelScan,
+    handleFilesUpload,
+    handleFilesDrop,
+    toggleScannedCode,
+    confirmScanImport
+  } = useScanImport({
+    setCurrentTab,
+    setValuationSeries,
+    showToast,
+    normalizeCode,
+    dedupeByCode
+  });
+
+  const refreshAllRef = useRef(null);
+  const {
+    isSyncing,
+    lastSyncTime,
+    syncUserConfig,
+    fetchCloudConfig,
+    applyCloudConfig,
+    handleSyncLocalConfig,
+    triggerCustomSettingsSync,
+    skipSyncRef,
+    deviceConflictModalOpenRef,
+    storageHelper
+  } = useSyncManager({
+    showToast,
+    refreshAllRef,
+    setTempSeconds,
+    setFundTagRecords
+  });
+
+  // 搜索框 UI 状态（抽离到 useFundSearchBox）
+  const {
+    searchTerm,
+    isSearchFocused,
+    setIsSearchFocused,
+    searchResults,
+    selectedFunds,
+    isSearching,
+    dropdownRef,
+    inputRef,
+    showDropdown,
+    setShowDropdown,
+    handleMobileSearchClick,
+    handleSearchInput,
+    toggleSelectFund,
+    addFund
+  } = useFundSearchBox({
+    funds,
+    setScannedFunds,
+    setSelectedScannedCodes,
+    setIsOcrScan,
+    setScanConfirmModalOpen,
+    setError
+  });
+  const {
+    openFundTagsEdit,
+    handleSaveFundTags,
+    handleAddPoolTag,
+    handleDeleteGlobalTag,
+    handleUpdateGlobalTag,
+    getTagUsageLabels
+  } = useFundTags({ funds, fundTagRecords, setFundTagRecords, storageHelper });
+
+  const toggleValuationTrendCollapse = useCallback(
+    (code) => {
+      setCollapsedValuationTrends((prev) => {
+        const next = new Set(prev);
+        if (next.has(code)) {
+          next.delete(code);
+        } else {
+          next.add(code);
+        }
+        return next;
+      });
+    },
+    [setCollapsedValuationTrends]
+  );
+
+  const applyViewMode = useCallback(
+    (mode) => {
+      if (mode !== 'card' && mode !== 'list') return;
+      if (mode !== viewMode) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      setViewMode(mode);
+      storageHelper.setItem('viewMode', mode);
+    },
+    [storageHelper, viewMode]
+  );
+
+  const toggleFavorite = useCallback(
+    (code) => {
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (next.has(code)) {
+          next.delete(code);
+        } else {
+          next.add(code);
+        }
+        if (next.size === 0) setCurrentTab('all');
+        return next;
+      });
+    },
+    [storageHelper]
+  );
+
+  const toggleCollapse = useCallback(
+    (code) => {
+      setCollapsedCodes((prev) => {
+        const next = new Set(prev);
+        if (next.has(code)) {
+          next.delete(code);
+        } else {
+          next.add(code);
+        }
+        return next;
+      });
+    },
+    [setCollapsedCodes]
+  );
+
+  const toggleTrendCollapse = useCallback(
+    (code) => {
+      setCollapsedTrends((prev) => {
+        const next = new Set(prev);
+        if (next.has(code)) {
+          next.delete(code);
+        } else {
+          next.add(code);
+        }
+        return next;
+      });
+    },
+    [setCollapsedTrends]
+  );
+
+  const toggleEarningsCollapse = useCallback(
+    (code) => {
+      setCollapsedEarnings((prev) => {
+        const next = new Set(prev);
+        if (next.has(code)) {
+          next.delete(code);
+        } else {
+          next.add(code);
+        }
+        return next;
+      });
+    },
+    [setCollapsedEarnings]
+  );
+
+  const { scheduleDcaTrades } = useDcaScheduler({ isTradingDay, showToast });
+
+  const { refreshing, refreshCycleStartRef, manualRefresh, refreshAll } = useRefreshManager({
+    scheduleDcaTrades,
+    processPendingQueue,
+    deviceConflictModalOpenRef
+  });
+  useEffect(() => {
+    refreshAllRef.current = refreshAll;
+  }, [refreshAll]);
+
+  const {
+    handleAddGroup,
+    handleUpdateGroups,
+    handleAddFundsToGroup,
+    stripFundFromGroupScope,
+    stripManyFundsFromGroupScope
+  } = useGroupActions({ currentTab, setCurrentTab });
+
+  useEffect(() => {
+    let cancelled = false;
+    const init = async () => {
+      initFunds();
+      initGroups();
+      initFavorites();
+      initCollapsed();
+      initRefreshMs();
+      initHoldings();
+      initGroupHoldings();
+      initPendingTrades();
+      initTransactions();
+      initDcaPlans();
+      initCustomSettings();
+      initFundDailyEarnings();
+      initFundDividends();
+      initSort();
+      try {
+        // 已登录用户：不在此处调用 refreshAll，等 fetchCloudConfig 完成后由 applyCloudConfig 统一刷新
+        let shouldRefreshFromLocal = true;
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase.auth.getSession();
+          if (!cancelled && !error && data?.session?.user) {
+            shouldRefreshFromLocal = false;
+          }
+        }
+        if (cancelled) return;
+
+        const saved = storageStore.getItem('funds', []);
+        if (isArray(saved) && saved.length) {
+          const deduped = dedupeByCode(saved);
+          const fundCodeSet = new Set(deduped.map((f) => f?.code).filter(Boolean));
+          let storedTagRows = [];
+          try {
+            storedTagRows = storageStore.getItem('tags', []);
+          } catch {
+            /* empty */
+          }
+          if (!isArray(storedTagRows)) storedTagRows = [];
+          const normalizedTags = storedTagRows
+            .map((r) => {
+              const codes = getFundCodesFromTagRecord(r).filter((c) => fundCodeSet.has(c));
+              return {
+                id: String(r.id || '').trim() || uuidv4(),
+                name: String(r.name || '').trim(),
+                theme: String(r.theme || '').trim() || DEFAULT_FUND_TAG_THEME,
+                fundCodes: codes.sort()
+              };
+            })
+            .filter((r) => r.name);
+          const cleanedFunds = deduped.map(stripLegacyTagsFromFundObject);
+          setFundTagRecords(normalizedTags);
+          const codes = Array.from(new Set(cleanedFunds.map((f) => f.code)));
+          if (codes.length && shouldRefreshFromLocal) refreshAll(codes);
+        } else {
+          try {
+            const t = storageStore.getItem('tags', []);
+            const arr = isArray(t) ? t : [];
+            const normalized = arr
+              .map((r) => {
+                const codes = getFundCodesFromTagRecord(r);
+                const name = String(r.name || '').trim();
+                if (!name) return null;
+                return {
+                  id: String(r.id || '').trim() || uuidv4(),
+                  name,
+                  theme: String(r.theme || '').trim() || DEFAULT_FUND_TAG_THEME,
+                  fundCodes: codes.sort()
+                };
+              })
+              .filter(Boolean);
+            setFundTagRecords(normalized);
+          } catch {
+            setFundTagRecords([]);
+          }
+        }
+        setTempSeconds(Math.round(useStorageStore.getState().refreshMs / 1000));
+        // 加载估值分时记录（用于分时图）
+        setValuationSeries(getAllValuationSeries(funds));
+        // 加载自选状态：只保留存在于 funds 中的 code，避免“自选数量 > 全部数量”
+        const savedFavorites = Array.from(favorites);
+        const storedFundCodeSet = new Set(funds.map((f) => f?.code).filter(Boolean));
+        const cleanedFavorites = cleanCodeArray(savedFavorites, storedFundCodeSet);
+        if (cleanedFavorites.length !== savedFavorites.length) {
+          setFavorites(new Set(cleanedFavorites));
+        }
+        // 加载待处理交易
+        const savedPending = storageStore.getItem('pendingTrades', []);
+        if (isArray(savedPending)) {
+          setPendingTrades(savedPending);
+        }
+        // 加载分组状态
+        // 读取用户上次选择的分组（仅本地存储，不同步云端）
+        const savedTab = storageStore.getItem('currentTab');
+        if (
+          savedTab === 'all' ||
+          savedTab === 'fav' ||
+          (savedTab && isArray(groups) && groups.some((g) => g?.id === savedTab))
+        ) {
+          setCurrentTab(savedTab);
+        } else if (savedTab) {
+          setCurrentTab('all');
+        }
+        // 加载持仓数据
+        const seedGh = seedGroupHoldingsFromGlobal(holdings, isArray(groups) ? groups : [], groupHoldings);
+        if (seedGh.changed) {
+          setGroupHoldings(seedGh.next);
+        }
+        const migratedDca = migrateDcaPlansToScoped(isPlainObject(dcaPlans) ? dcaPlans : {});
+        if (JSON.stringify(migratedDca) !== JSON.stringify(dcaPlans)) {
+          setDcaPlans(migratedDca);
+        }
+        const savedTheme = storageStore.getItem('theme');
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          setTheme(savedTheme);
+        }
+      } catch {}
+      if (!cancelled) {
+        hasLocalTabInitRef.current = true;
+      }
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupabaseConfigured]);
+
+  // 切换分组后，页面自动回到顶部（跳过首次初始化恢复）
+  useEffect(() => {
+    if (!hasLocalTabInitRef.current) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentTab]);
+
+  // 全局持仓或分组成员变化时，按分组幂等补全子账本（不覆盖已有分组持仓）
+  useEffect(() => {
+    if (!hasLocalTabInitRef.current) return;
+    setGroupHoldings((prev) => {
+      const { next, changed } = seedGroupHoldingsFromGlobal(holdings, groups, prev);
+      if (!changed) return prev;
+      return next;
+    });
+  }, [holdings, groups]);
+
+  // 记录用户当前选择的分组（仅本地存储，不同步云端）
+  useEffect(() => {
+    if (!hasLocalTabInitRef.current) return;
+    try {
+      storageStore.setItem('currentTab', currentTab);
+    } catch {}
+  }, [currentTab]);
+
+  // 主题同步：已由 useTheme hook 内部的 useEffect 处理，此处无需重复
+
+  // 初始化认证状态监听
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      clearAuthUser();
+      return;
+    }
+    const clearAuthState = () => {
+      clearAuthUser();
+      skipSyncRef.current = false;
+    };
+
+    const handleSession = async (session, event, isExplicitLogin = false) => {
+      if (!session?.user) {
+        if (event === 'SIGNED_OUT' && !isLoggingOutRef.current) {
+          setLoginInitialError('会话已过期，请重新登录');
+          setLoginModalOpen(true);
+        }
+        isLoggingOutRef.current = false;
+        clearAuthState();
+        skipSyncRef.current = false;
+        return;
+      }
+      if (session.expires_at && session.expires_at * 1000 <= Date.now()) {
+        isLoggingOutRef.current = true;
+        await supabase.auth.signOut({ scope: 'local' });
+        try {
+          // 例外：Supabase 会话键清理（auth SDK 持有 sb-*-auth-token，非 app 业务存储），保留直连枚举。
+          const storageKeys = Object.keys(localStorage);
+          storageKeys.forEach((key) => {
+            if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+              storageHelper.removeItem(key);
+            }
+          });
+        } catch {}
+        try {
+          const sessionKeys = Object.keys(sessionStorage);
+          sessionKeys.forEach((key) => {
+            if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+              sessionStorage.removeItem(key);
+            }
+          });
+        } catch {}
+        clearAuthState();
+        setLoginInitialError('会话已过期，请重新登录');
+        showToast('会话已过期，请重新登录', 'error');
+        setLoginModalOpen(true);
+        return;
+      }
+      setAuthUser(session.user);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        setLoginModalOpen(false);
+        setLoginInitialError('');
+      }
+      // 仅在明确的登录动作（SIGNED_IN）时检查冲突；INITIAL_SESSION（刷新页面等）不检查，直接以云端为准
+      fetchCloudConfig(session.user.id, isExplicitLogin, {
+        refreshAfterApply: event === 'INITIAL_SESSION'
+      });
+    };
+
+    supabase.auth.getSession().then(async ({ data, error }) => {
+      if (error) {
+        clearAuthState();
+        return;
+      }
+      await handleSession(data?.session ?? null, 'INITIAL_SESSION');
+    });
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // INITIAL_SESSION 会由 getSession() 主动触发，这里不再重复处理
+      if (event === 'INITIAL_SESSION') return;
+      const isExplicitLogin = event === 'SIGNED_IN' && isExplicitLoginRef.current;
+      await handleSession(session ?? null, event, isExplicitLogin);
+      if (event === 'SIGNED_IN') {
+        isExplicitLoginRef.current = false;
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // // 实时同步
+  // useEffect(() => {
+  //   if (!isSupabaseConfigured || !user?.id) return;
+  //   const deviceId = deviceIdRef.current;
+  //   if (!deviceId) return; // 确保设备ID已初始化
+  //
+  //   const channel = supabase
+  //     .channel(`user-configs-${user.id}`)
+  //     .on('postgres_changes', { event: '*', schema: 'public', table: 'user_configs', filter: `last_device_id=neq.${deviceId}` }, async (payload) => {
+  //       if (deviceConflictModalOpenRef.current) return; // 如果有拦截弹窗，忽略实时推送，防止覆盖本地数据
+  //       if (payload.eventType !== 'INSERT' && payload.eventType !== 'UPDATE') return;
+  //       const incoming = payload?.new?.data;
+  //       if (!isPlainObject(incoming)) return;
+  //       const incomingDeviceId = incoming?._syncMeta?.deviceId ? String(incoming._syncMeta.deviceId) : '';
+  //       if (incomingDeviceId && deviceIdRef.current && incomingDeviceId === deviceIdRef.current) return;
+  //       const incomingComparable = getComparablePayload(incoming);
+  //       if (!incomingComparable || incomingComparable === lastSyncedRef.current) return;
+  //       await applyCloudConfig(incoming, payload.new.updated_at);
+  //     })
+  //     .subscribe();
+  //   return () => {
+  //     supabase.removeChannel(channel);
+  //   };
+  // }, [user?.id]);
+
+  // 登出
+  const handleLogout = async () => {
+    isLoggingOutRef.current = true;
+    if (!isSupabaseConfigured) {
+      setLoginModalOpen(false);
+      setLoginInitialError('');
+      clearAuthUser();
+      return;
+    }
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      if (session) {
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        if (error && error.code !== 'session_not_found') {
+          throw error;
+        }
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+      console.error('登出失败', err);
+    } finally {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {}
+      try {
+        // 例外：Supabase 会话键清理（auth SDK 持有 sb-*-auth-token，非 app 业务存储），保留直连枚举。
+        const storageKeys = Object.keys(localStorage);
+        storageKeys.forEach((key) => {
+          if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            storageHelper.removeItem(key);
+          }
+        });
+      } catch {}
+      try {
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach((key) => {
+          if (key === 'supabase.auth.token' || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      } catch {}
+      setLoginModalOpen(false);
+      setLoginInitialError('');
+      clearAuthUser();
+    }
+  };
+
+  const {
+    handleReorder,
+    requestRemoveFund,
+    removeFundsFromCurrentTabHandler,
+    handleMoveFunds,
+    removeFund,
+    removeFundsBulk
+  } = useFundMutations({
+    currentTab,
+    setCurrentTab,
+    displayFunds,
+    setFundTagRecords,
+    storageHelper,
+    stripFundFromGroupScope,
+    stripManyFundsFromGroupScope,
+    showToast,
+    fundDetailDrawerCloseRef,
+    fundDetailDialogCloseRef
+  });
+
+  const handleMarketTabAddFund = (fundInfo) => {
+    const { code, name } = fundInfo;
+    const fundsToConfirm = [
+      {
+        code,
+        name,
+        status: 'pending'
+      }
+    ];
+    setScannedFunds(fundsToConfirm);
+    setSelectedScannedCodes(new Set([code]));
+    setIsOcrScan(false);
+    setScanConfirmModalOpen(true);
+  };
+
+  const saveSettings = (
+    e,
+    secondsOverride,
+    showMarketIndexOverride,
+    showGroupFundSearchOverride,
+    isMobileOverride,
+    dynamicStyleOverride
+  ) => {
+    e?.preventDefault?.();
+    const seconds = secondsOverride ?? tempSeconds;
+    const ms = Math.max(30, Number(seconds)) * 1000;
+    setTempSeconds(Math.round(ms / 1000));
+    setRefreshMs(ms);
+    const nextShowMarketIndex = isBoolean(showMarketIndexOverride)
+      ? showMarketIndexOverride
+      : isMobileOverride
+        ? showMarketIndexMobile
+        : showMarketIndexPc;
+
+    const targetIsMobile = Boolean(isMobileOverride);
+    if (targetIsMobile) setShowMarketIndexMobile(nextShowMarketIndex);
+    else setShowMarketIndexPc(nextShowMarketIndex);
+
+    const nextShowGroupFundSearch = isBoolean(showGroupFundSearchOverride)
+      ? showGroupFundSearchOverride
+      : targetIsMobile
+        ? showGroupFundSearchMobile
+        : showGroupFundSearchPc;
+    if (targetIsMobile) setShowGroupFundSearchMobile(nextShowGroupFundSearch);
+    else setShowGroupFundSearchPc(nextShowGroupFundSearch);
+
+    const nextDynamicStyle = isBoolean(dynamicStyleOverride)
+      ? dynamicStyleOverride
+      : targetIsMobile
+        ? dynamicStyleMobile
+        : dynamicStylePc;
+    if (targetIsMobile) setDynamicStyleMobile(nextDynamicStyle);
+    else setDynamicStylePc(nextDynamicStyle);
+
+    // 在移动端不裁剪也不修改 pcContainerWidth，直接保留原值
+    let w = Number(containerWidth) || 1200;
+    if (!targetIsMobile) {
+      w = Math.min(window.innerWidth, Math.max(600, w));
+      setContainerWidth(w);
+    }
+
+    try {
+      const parsed = customSettings || {};
+      if (targetIsMobile) {
+        // 仅更新当前运行端对应的开关键，不覆盖 PC 端宽度
+        setCustomSettings({
+          ...parsed,
+          showMarketIndexMobile: nextShowMarketIndex,
+          showGroupFundSearchMobile: nextShowGroupFundSearch,
+          dynamicStyleMobile: nextDynamicStyle
+        });
+      } else {
+        setCustomSettings({
+          ...parsed,
+          pcContainerWidth: w,
+          showMarketIndexPc: nextShowMarketIndex,
+          showGroupFundSearchPc: nextShowGroupFundSearch,
+          dynamicStylePc: nextDynamicStyle
+        });
+      }
+    } catch {}
+    setSettingsOpen(false);
+  };
+
+  const handleResetContainerWidth = () => {
+    setContainerWidth(1200);
+    try {
+      const parsed = customSettings || {};
+      setCustomSettings({ ...parsed, pcContainerWidth: 1200 });
+    } catch {}
+  };
+
+  const importFileRef = useRef(null);
+  const [importMsg, setImportMsg] = useState('');
+
+  const exportLocalData = async () => {
+    try {
+      const payload = {
+        funds,
+        tags: storageStore.getItem('tags', []),
+        favorites: Array.from(favorites),
+        groups,
+        collapsedCodes: Array.from(collapsedCodes),
+        collapsedTrends: Array.from(collapsedTrends),
+        collapsedEarnings: Array.from(collapsedEarnings),
+        refreshMs,
+        viewMode: storageStore.getItem('viewMode') === 'list' ? 'list' : 'card',
+        holdings,
+        groupHoldings,
+        pendingTrades,
+        transactions,
+        dcaPlans,
+        customSettings: customSettings || {},
+        fundDailyEarnings,
+        exportedAt: nowInTz().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: `realtime-fund-config-${Date.now()}.json`,
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        setSuccessModal({ open: true, message: '导出成功' });
+        setSettingsOpen(false);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `realtime-fund-config-${Date.now()}.json`;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        URL.revokeObjectURL(url);
+        setSuccessModal({ open: true, message: '导出成功' });
+        setSettingsOpen(false);
+      };
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') return;
+        finish();
+        document.removeEventListener('visibilitychange', onVisibility);
+      };
+      document.addEventListener('visibilitychange', onVisibility, { once: true });
+      a.click();
+      setTimeout(finish, 3000);
+    } catch (err) {
+      console.error('Export error:', err);
+    }
+  };
+
+  const handleImportFileChange = async (e) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (isPlainObject(data)) {
+        // 从 localStorage 读取最新数据进行合并，防止状态滞后导致的数据丢失
+        const currentFunds = storageStore.getItem('funds', []);
+        const currentFavorites = storageStore.getItem('favorites', []);
+        const currentGroups = storageStore.getItem('groups', []);
+        const currentCollapsed = storageStore.getItem('collapsedCodes', []);
+        const currentTrends = storageStore.getItem('collapsedTrends', []);
+        const currentEarnings = storageStore.getItem('collapsedEarnings', []);
+        const currentPendingTrades = storageStore.getItem('pendingTrades', []);
+        const currentDcaPlans = storageStore.getItem('dcaPlans', {});
+        const currentGroupHoldings = storageStore.getItem('groupHoldings', {});
+
+        let mergedFunds = currentFunds;
+        let appendedCodes = [];
+
+        if (isArray(data.funds)) {
+          const incomingFunds = dedupeByCode(data.funds.map(stripLegacyTagsFromFundObject));
+          const existingCodes = new Set(currentFunds.map((f) => f.code));
+          const newItems = incomingFunds.filter((f) => f && f.code && !existingCodes.has(f.code));
+          appendedCodes = newItems.map((f) => f.code);
+          mergedFunds = [...currentFunds, ...newItems];
+          setFunds(mergedFunds);
+        }
+
+        if (isArray(data.favorites)) {
+          const fundCodeSet = new Set(mergedFunds.map((f) => f?.code).filter(Boolean));
+          const mergedFav = cleanCodeArray([...currentFavorites, ...data.favorites], fundCodeSet);
+          setFavorites(new Set(mergedFav));
+        }
+
+        if (isArray(data.tags)) {
+          const currentTags = storageStore.getItem('tags', []);
+          const fundCodeSet = new Set(mergedFunds.map((f) => f?.code).filter(Boolean));
+          const byId = new Map((isArray(currentTags) ? currentTags : []).map((r) => [String(r.id), r]));
+          for (const r of data.tags) {
+            if (!r || !isObject(r)) continue;
+            const codes = getFundCodesFromTagRecord(r).filter((c) => fundCodeSet.has(c));
+            const name = String(r.name ?? '').trim();
+            if (!name) continue;
+            const id = String(r.id ?? '').trim() || uuidv4();
+            const existing = byId.get(id);
+            const mergedCodes = existing
+              ? [...new Set([...getFundCodesFromTagRecord(existing), ...codes])].sort()
+              : codes.sort();
+            const row = sanitizeTagRowForStorage({
+              id,
+              name,
+              theme: String(r.theme ?? '').trim() || DEFAULT_FUND_TAG_THEME,
+              fundCodes: mergedCodes
+            });
+            if (row) byId.set(id, row);
+          }
+          const mergedTags = Array.from(byId.values())
+            .map(sanitizeTagRowForStorage)
+            .filter(Boolean)
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+          setFundTagRecords(mergedTags);
+          storageHelper.setItem('tags', JSON.stringify(mergedTags));
+        }
+
+        // fundTagLists 已废弃：导入时无需处理该字段
+
+        if (isArray(data.groups)) {
+          // 合并分组：如果 ID 相同则合并 codes，否则添加新分组
+          const mergedGroups = [...currentGroups];
+          data.groups.forEach((incomingGroup) => {
+            const existingIdx = mergedGroups.findIndex((g) => g.id === incomingGroup.id);
+            if (existingIdx > -1) {
+              mergedGroups[existingIdx] = {
+                ...mergedGroups[existingIdx],
+                codes: Array.from(new Set([...mergedGroups[existingIdx].codes, ...(incomingGroup.codes || [])]))
+              };
+            } else {
+              mergedGroups.push(incomingGroup);
+            }
+          });
+          setGroups(mergedGroups);
+        }
+
+        if (isArray(data.collapsedCodes)) {
+          const mergedCollapsed = Array.from(new Set([...currentCollapsed, ...data.collapsedCodes]));
+          setCollapsedCodes(new Set(mergedCollapsed));
+        }
+
+        if (isArray(data.collapsedTrends)) {
+          const mergedTrends = Array.from(new Set([...currentTrends, ...data.collapsedTrends]));
+          setCollapsedTrends(new Set(mergedTrends));
+        }
+
+        if (isArray(data.collapsedEarnings)) {
+          const mergedEarnings = Array.from(new Set([...currentEarnings, ...data.collapsedEarnings]));
+          setCollapsedEarnings(new Set(mergedEarnings));
+        }
+
+        if (isNumber(data.refreshMs) && data.refreshMs >= 5000) {
+          setRefreshMs(data.refreshMs);
+          setTempSeconds(Math.round(data.refreshMs / 1000));
+        }
+        if (data.viewMode === 'card' || data.viewMode === 'list') {
+          applyViewMode(data.viewMode);
+        }
+
+        if (isPlainObject(data.holdings)) {
+          const mergedHoldings = { ...storageStore.getItem('holdings', {}), ...data.holdings };
+          setHoldings(mergedHoldings);
+        }
+
+        if (isPlainObject(data.groupHoldings)) {
+          const mergedGH = { ...(isPlainObject(currentGroupHoldings) ? currentGroupHoldings : {}) };
+          Object.entries(data.groupHoldings).forEach(([gid, bucket]) => {
+            if (!isPlainObject(bucket)) return;
+            mergedGH[gid] = { ...(mergedGH[gid] || {}), ...bucket };
+          });
+          setGroupHoldings(mergedGH);
+        }
+
+        if (isPlainObject(data.transactions)) {
+          const currentTransactions = storageStore.getItem('transactions', {});
+          const mergedTransactions = { ...currentTransactions };
+          Object.entries(data.transactions).forEach(([code, txs]) => {
+            if (!isArray(txs)) return;
+            const existing = mergedTransactions[code] || [];
+            const existingIds = new Set(existing.map((t) => t.id));
+            const newTxs = txs.filter((t) => !existingIds.has(t.id));
+            mergedTransactions[code] = [...existing, ...newTxs].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          });
+          setTransactions(mergedTransactions);
+        }
+
+        if (isArray(data.pendingTrades)) {
+          const existingPending = isArray(currentPendingTrades) ? currentPendingTrades : [];
+          const incomingPending = data.pendingTrades.filter((trade) => trade && trade.fundCode);
+          const fundCodeSet = new Set(mergedFunds.map((f) => f.code));
+          const keyOf = (trade) => {
+            if (trade?.id) return `id:${trade.id}`;
+            return `k:${trade?.groupId || ''}:${trade?.fundCode || ''}:${trade?.type || ''}:${trade?.date || ''}:${trade?.share || ''}:${trade?.amount || ''}:${trade?.isAfter3pm ? 1 : 0}`;
+          };
+          const mergedPendingMap = new Map();
+          existingPending.forEach((trade) => {
+            if (!trade || !fundCodeSet.has(trade.fundCode)) return;
+            mergedPendingMap.set(keyOf(trade), trade);
+          });
+          incomingPending.forEach((trade) => {
+            if (!fundCodeSet.has(trade.fundCode)) return;
+            mergedPendingMap.set(keyOf(trade), trade);
+          });
+          const mergedPending = Array.from(mergedPendingMap.values());
+          setPendingTrades(mergedPending);
+        }
+
+        if (isPlainObject(data.dcaPlans)) {
+          const mergedDca = { ...migrateDcaPlansToScoped(currentDcaPlans) };
+          const incomingScoped = migrateDcaPlansToScoped(data.dcaPlans);
+          Object.keys(incomingScoped).forEach((scope) => {
+            mergedDca[scope] = {
+              ...(isPlainObject(mergedDca[scope]) ? mergedDca[scope] : {}),
+              ...(isPlainObject(incomingScoped[scope]) ? incomingScoped[scope] : {})
+            };
+          });
+          setDcaPlans(mergedDca);
+        }
+        if (isPlainObject(data.customSettings)) {
+          try {
+            const currentCustomSettings = customSettings || {};
+            const mergedSettings = {
+              ...(isPlainObject(currentCustomSettings) ? currentCustomSettings : {}),
+              ...data.customSettings
+            };
+            setCustomSettings(mergedSettings);
+            if (mergedSettings.localSortRules && isArray(mergedSettings.localSortRules)) {
+              setSortRules(mergedSettings.localSortRules);
+            }
+            if (mergedSettings.localSortDisplayMode && SORT_DISPLAY_MODES.has(mergedSettings.localSortDisplayMode)) {
+              setPcSortDisplayMode(mergedSettings.localSortDisplayMode);
+              setMobileSortDisplayMode(mergedSettings.localSortDisplayMode);
+            } else {
+              if (
+                mergedSettings.pcLocalSortDisplayMode &&
+                SORT_DISPLAY_MODES.has(mergedSettings.pcLocalSortDisplayMode)
+              ) {
+                setPcSortDisplayMode(mergedSettings.pcLocalSortDisplayMode);
+              }
+              if (
+                mergedSettings.mobileLocalSortDisplayMode &&
+                SORT_DISPLAY_MODES.has(mergedSettings.mobileLocalSortDisplayMode)
+              ) {
+                setMobileSortDisplayMode(mergedSettings.mobileLocalSortDisplayMode);
+              }
+            }
+            if (isNumber(mergedSettings.pcContainerWidth) && Number.isFinite(mergedSettings.pcContainerWidth)) {
+              const maxWidth = window.matchMedia('(max-width: 640px)').matches ? 99999 : window.innerWidth;
+              setContainerWidth(Math.min(maxWidth, Math.max(600, mergedSettings.pcContainerWidth)));
+            }
+            if (isBoolean(mergedSettings.showMarketIndexPc)) setShowMarketIndexPc(mergedSettings.showMarketIndexPc);
+            if (isBoolean(mergedSettings.showMarketIndexMobile))
+              setShowMarketIndexMobile(mergedSettings.showMarketIndexMobile);
+            if (isBoolean(mergedSettings.showGroupFundSearchPc))
+              setShowGroupFundSearchPc(mergedSettings.showGroupFundSearchPc);
+            if (isBoolean(mergedSettings.showGroupFundSearchMobile))
+              setShowGroupFundSearchMobile(mergedSettings.showGroupFundSearchMobile);
+          } catch {}
+        }
+
+        if (isPlainObject(data.fundDailyEarnings)) {
+          try {
+            const incomingScoped = normalizeFundDailyEarningsScoped(data.fundDailyEarnings);
+            const currentScoped = normalizeFundDailyEarningsScoped(fundDailyEarnings);
+            const mergedDaily = { ...currentScoped };
+            Object.entries(incomingScoped).forEach(([scope, bucket]) => {
+              if (!isPlainObject(bucket)) return;
+              const existingBucket = isPlainObject(mergedDaily[scope]) ? mergedDaily[scope] : {};
+              const mergedBucket = { ...existingBucket };
+              Object.entries(bucket).forEach(([code, list]) => {
+                if (!isArray(list)) return;
+                const existingList = isArray(mergedBucket[code]) ? mergedBucket[code] : [];
+                const existingByDate = new Map(existingList.map((item) => [item.date, item]));
+                list.forEach((item) => {
+                  if (!item || !item.date || !Number.isFinite(item.earnings)) return;
+                  existingByDate.set(item.date, item);
+                });
+                mergedBucket[code] = Array.from(existingByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+              });
+              mergedDaily[scope] = mergedBucket;
+            });
+            setFundDailyEarnings(mergedDaily);
+          } catch {}
+        }
+
+        // 导入成功后，仅刷新新追加的基金
+        if (appendedCodes.length) {
+          // 这里需要确保 refreshAll 不会因为闭包问题覆盖掉刚刚合并好的 mergedFunds
+          // 我们直接传入所有代码执行一次全量刷新是最稳妥的，或者修改 refreshAll 支持增量更新
+          const allCodes = mergedFunds.map((f) => f.code);
+          await refreshAll(allCodes);
+        }
+
+        setSuccessModal({ open: true, message: '导入成功' });
+        setSettingsOpen(false); // 导入成功自动关闭设置弹框
+        if (importFileRef.current) importFileRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      setImportMsg('导入失败，请检查文件格式');
+      setTimeout(() => setImportMsg(''), 4000);
+      if (importFileRef.current) importFileRef.current.value = '';
+    }
+  };
+
+  useEffect(() => {
+    if (!isMobile || mainTab !== 'home') return;
+
+    let ticking = false;
+    const handleScroll = () => {
+      // 如果 body 已经被锁定了滚动（说明有弹窗打开），直接忽略滚动事件
+      if (document.body.style.overflow === 'hidden') return;
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const lastScrollY = lastScrollYRef.current;
+          const scrollDelta = currentScrollY - lastScrollY;
+          const threshold = 10;
+
+          if (scrollDelta > threshold && currentScrollY > 50) {
+            setMobileBottomNavHidden(true);
+          } else if (scrollDelta < -threshold) {
+            setMobileBottomNavHidden(false);
+          } else if (currentScrollY <= 0) {
+            setMobileBottomNavHidden(false);
+          }
+
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobile, mainTab]);
+
+  useEffect(() => {
+    if (!isMobile || mainTab !== 'home') {
+      setMobileBottomNavHidden(false);
+    }
+  }, [isMobile, mainTab]);
+
+  const settingsOpenRef = useRef(false);
+  useEffect(() => {
+    const unsub = useModalStore.subscribe(
+      (s) => s.settingsOpen,
+      (open) => {
+        settingsOpenRef.current = open;
+      }
+    );
+    settingsOpenRef.current = useModalStore.getState().settingsOpen;
+    return unsub;
+  }, []);
+  useEffect(() => {
+    const onKey = (ev) => {
+      if (ev.key === 'Escape' && settingsOpenRef.current) setSettingsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const containerClassName = [
+    'container',
+    isMobile && mainTab === 'mine' ? 'mine-mobile-root' : 'content',
+    isMobile && mainTab === 'home' ? 'content-with-mobile-tabbar' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  /** 移动端底部 Tab 切换时保留首页 DOM，用显隐代替卸载 */
+  const mobileHomeTabVisible = mainTab === 'home' || mainTab === 'market';
+
+  /** PC / 移动端行、FundCard 共用：统一 name / fundName 后走单删逻辑 */
+  const handleRemoveFundEntry = useCallback(
+    (rowOrFund) => {
+      if (!rowOrFund?.code) return;
+      const name = rowOrFund.name ?? rowOrFund.fundName ?? rowOrFund.code;
+      requestRemoveFund({ code: rowOrFund.code, name });
+    },
+    [requestRemoveFund]
+  );
+
+  const handleToggleFavoriteRow = useCallback(
+    (row) => {
+      if (!row || !row.code) return;
+      toggleFavorite(row.code);
+    },
+    [toggleFavorite]
+  );
+
+  const handleHoldingAmountClickRow = useCallback(
+    (row, meta) => {
+      if (!row || !row.code) return;
+      if ((currentTab === 'all' || currentTab === 'fav') && row.isHoldingLinked) {
+        const fund = row.rawFund || { code: row.code, name: row.fundName };
+        setSelectHoldingGroupModal({ open: true, fund });
+        return;
+      }
+
+      // 自定义分组：未设置持仓时，如果“全部”存在全局持仓，则提示迁移
+      if (activeGroupId && meta?.hasHolding === false) {
+        const gh = groupHoldings?.[activeGroupId]?.[row.code];
+        const hasGroupShare = gh && isNumber(gh.share) && gh.share > 0;
+        const global = holdings?.[row.code];
+        const hasGlobalShare = global && isNumber(global.share) && global.share > 0;
+        if (!hasGroupShare && hasGlobalShare) {
+          const name = row.rawFund?.name ?? row.fundName ?? row.code;
+          setHoldingMigrateDialog({
+            open: true,
+            code: row.code,
+            name,
+            targetGroupId: activeGroupId
+          });
+          return;
+        }
+      }
+
+      const fund = row.rawFund || { code: row.code, name: row.fundName };
+      if (meta?.hasHolding) {
+        setActionModal({ open: true, fund });
+      } else {
+        setHoldingModal({ open: true, fund });
+      }
+    },
+    [activeGroupId, currentTab, groupHoldings, holdings]
+  );
+
+  const handleHoldingProfitClickRow = useCallback((row) => {
+    if (!row || !row.code) return;
+    if (row.holdingProfitValue == null) return;
+    setPercentModes((prev) => ({ ...prev, [row.code]: !prev[row.code] }));
+  }, []);
+
+  const openHoldingModal = useCallback(
+    (fund) => {
+      const code = fund?.code;
+      if ((currentTab === 'all' || currentTab === 'fav') && code && linkedHoldingsForAllFav.linked?.has?.(code)) {
+        setSelectHoldingGroupModal({ open: true, fund });
+        return;
+      }
+
+      // 自定义分组：卡片视图/抽屉中“未设置持仓”点击时也走同样迁移提示
+      if (activeGroupId && code) {
+        const gh = groupHoldings?.[activeGroupId]?.[code];
+        const hasGroupShare = gh && isNumber(gh.share) && gh.share > 0;
+        const global = holdings?.[code];
+        const hasGlobalShare = global && isNumber(global.share) && global.share > 0;
+        if (!hasGroupShare && hasGlobalShare) {
+          const name = fund?.name ?? code;
+          setHoldingMigrateDialog({
+            open: true,
+            code,
+            name,
+            targetGroupId: activeGroupId
+          });
+          return;
+        }
+      }
+
+      setHoldingModal({ open: true, fund });
+    },
+    [activeGroupId, currentTab, groupHoldings, holdings, linkedHoldingsForAllFav]
+  );
+  const openDataSourceModal = useCallback((fund) => {
+    setDataSourceModal({ open: true, fund });
+  }, []);
+
+  const handleDataSourceSelect = useCallback(
+    (fundCode, sourceId) => {
+      setFunds((prev) => {
+        const next = [...prev];
+        const idx = next.findIndex((f) => f.code === fundCode);
+        if (idx !== -1) {
+          next[idx] = {
+            ...next[idx],
+            dataSource: sourceId,
+            gsz: null,
+            gszzl: null,
+            gztime: null,
+            valuationSource: null,
+            noValuation: false
+          };
+        }
+        return next;
+      });
+
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = storageStore.getItem('rtf_unadded_ds', {});
+          saved[fundCode] = sourceId;
+          storageStore.setItem('rtf_unadded_ds', JSON.stringify(saved));
+        } catch {}
+        window.dispatchEvent(new CustomEvent('rtf_unadded_datasource_change', { detail: { fundCode, sourceId } }));
+      }
+
+      // Immediately fetch new data for this fund so the UI updates
+      refreshAll([fundCode]);
+      showToast('切换数据源成功', 'success');
+    },
+    [setFunds]
+  ); // refreshAll is omitted from deps to avoid loop, it's stable enough in page scope
+
+  const openActionModal = useCallback(
+    (fund) => {
+      const code = fund?.code;
+      if ((currentTab === 'all' || currentTab === 'fav') && code && linkedHoldingsForAllFav.linked?.has?.(code)) {
+        setSelectHoldingGroupModal({ open: true, fund });
+        return;
+      }
+      setActionModal({ open: true, fund });
+    },
+    [currentTab, linkedHoldingsForAllFav]
+  );
+  const togglePercentMode = useCallback((code) => {
+    setPercentModes((prev) => ({ ...prev, [code]: !prev[code] }));
+  }, []);
+  const toggleTodayPercentMode = useCallback((code) => {
+    setTodayPercentModes((prev) => ({ ...prev, [code]: !prev[code] }));
+  }, []);
+
+  const getFundCardPropsForRow = useCallback(
+    (row) => {
+      const fund = row?.rawFund || (row ? { code: row.code, name: row.fundName } : null);
+      if (!fund) return {};
+      return {
+        fundCode: fund.code,
+        fallbackFund: fund,
+        todayStr,
+        currentTab,
+        favorites,
+        dcaPlans: dcaPlansForTab,
+        holdings: holdingsForTabWithLinked,
+        percentModes,
+        todayPercentModes,
+        fundDailyEarnings: currentFundDailyEarnings,
+        valuationSeries,
+        collapsedCodes,
+        collapsedTrends,
+        collapsedValuationTrends,
+        collapsedEarnings,
+        transactions: transactionsForTab,
+        theme,
+        isTradingDay,
+        getHoldingProfit: getHoldingProfitForTab,
+        onToggleFavorite: toggleFavorite,
+        onAddFund: handleMarketTabAddFund,
+        onRemoveFund: handleRemoveFundEntry,
+        onHoldingClick: openHoldingModal,
+        onActionClick: openActionModal,
+        onDataSourceClick: openDataSourceModal,
+        onPercentModeToggle: togglePercentMode,
+        onTodayPercentModeToggle: toggleTodayPercentMode,
+        onToggleCollapse: toggleCollapse,
+        onToggleTrendCollapse: toggleTrendCollapse,
+        onToggleValuationTrendCollapse: toggleValuationTrendCollapse,
+        onToggleEarningsCollapse: toggleEarningsCollapse,
+        masked: maskAmounts,
+        layoutMode: 'drawer',
+        isHoldingLinked: !!row?.isHoldingLinked,
+        fundTags: row?.fundTags || [],
+        onFundTagsClick: openFundTagsEdit,
+        fundExtraData: fundExtraDataByCode[fund.code] || fund.fundExtraData,
+        groupTotalHoldingAmount,
+        hasPending: pendingCodesForTab.has(fund.code),
+        userId: user?.id
+      };
+    },
+    [
+      todayStr,
+      currentTab,
+      favorites,
+      dcaPlansForTab,
+      holdingsForTabWithLinked,
+      percentModes,
+      todayPercentModes,
+      currentFundDailyEarnings,
+      valuationSeries,
+      collapsedCodes,
+      collapsedTrends,
+      collapsedValuationTrends,
+      collapsedEarnings,
+      transactionsForTab,
+      theme,
+      isTradingDay,
+      getHoldingProfitForTab,
+      toggleFavorite,
+      handleRemoveFundEntry,
+      openHoldingModal,
+      openActionModal,
+      openDataSourceModal,
+      togglePercentMode,
+      toggleTodayPercentMode,
+      toggleCollapse,
+      toggleTrendCollapse,
+      toggleValuationTrendCollapse,
+      toggleEarningsCollapse,
+      maskAmounts,
+      openFundTagsEdit,
+      fundExtraDataByCode,
+      groupTotalHoldingAmount,
+      pendingCodesForTab,
+      user?.id
+    ]
+  );
+
+  // ModalsLayer 回调 ref：页面级回调与数据通过 ref 注入，不触发重渲染
+  const modalCbRef = useRef({});
+  modalCbRef.current = {
+    // 业务回调
+    handleClearConfirm,
+    handleDeleteTransaction,
+    handleAddHistory,
+    handleAction,
+    handleTrade,
+    handleSaveHolding,
+    handleAddGroup,
+    handleUpdateGroups,
+    handleAddFundsToGroup,
+    handleDataSourceSelect,
+    handleSyncLocalConfig,
+    handleSaveFundTags,
+    handleAddPoolTag,
+    handleDeleteGlobalTag,
+    handleUpdateGlobalTag,
+    getTagUsageLabels,
+    handleMoveFunds,
+    handleMergeAllGroupTransactionsToCurrent,
+    stripFundFromGroupScope,
+    removeFund,
+    removeFundsBulk,
+    stripManyFundsFromGroupScope,
+    applyCloudConfig: (data) => {
+      applyCloudConfig(data);
+    },
+    syncUserConfig,
+    fetchCloudConfig: (userId, isInitialSync, remoteData, isPartial, opts) =>
+      fetchCloudConfig?.(userId, isInitialSync, remoteData, isPartial, opts),
+    refreshAll: (codes) => refreshAll?.(codes),
+    showToast,
+    cancelScan,
+    handleScanPick: (e) => handleScanPick?.(e),
+    handleRetryOcr: () => handleRetryOcr?.(),
+    handleFilesDrop: (e) => handleFilesDrop?.(e),
+    toggleScannedCode: (code) => toggleScannedCode?.(code),
+    confirmScanImport: (targetGroupId, expandAfterAdd) => confirmScanImport?.(targetGroupId, expandAfterAdd),
+    // 辅助函数
+    getScopedHolding: (code, groupIdOverride) => getScopedHolding?.(code, groupIdOverride),
+    getScopedGroupId: (groupIdOverride) => getScopedGroupId?.(groupIdOverride),
+    getHoldingProfit: getHoldingProfitForTab,
+    getScopedDcaPlan: (code, groupIdOverride) => getScopedDcaPlan?.(code, groupIdOverride),
+    // 数据
+    funds,
+    groups,
+    groupHoldings,
+    transactions,
+    holdings,
+    dcaPlans,
+    pendingTrades,
+    fundTagRecords,
+    fundTagListsByCode,
+    favorites,
+    scannedFunds: scannedFunds ?? [],
+    selectedScannedCodes: selectedScannedCodes ?? new Set(),
+    isOcrScan: isOcrScan ?? false,
+    refreshing,
+    user,
+    portfolioDailySeries,
+    currentTab,
+    // Settings
+    tempSeconds,
+    setTempSeconds,
+    containerWidth,
+    setContainerWidth,
+    importMsg: isString(importMsg) ? importMsg : '',
+    saveSettings,
+    exportLocalData,
+    handleResetContainerWidth,
+    handleImportFileChange,
+    importFileRef: importFileRef ?? { current: null },
+    fileInputRef: fileInputRef ?? { current: null },
+    showMarketIndexPc,
+    showMarketIndexMobile,
+    showGroupFundSearchPc,
+    showGroupFundSearchMobile,
+    dynamicStylePc,
+    dynamicStyleMobile,
+    scanProgress: scanProgress ?? { stage: 'ocr', current: 0, total: 0 },
+    scanImportProgress: scanImportProgress ?? { current: 0, total: 0, success: 0, failed: 0 },
+    // Refs
+    fundDetailDrawerCloseRef,
+    fundDetailDialogCloseRef,
+    pcBatchClearSelectionRef,
+    mobileBatchClearSelectionRef,
+    skipSyncRef,
+    refreshCycleStartRef,
+    isExplicitLoginRef,
+    // Setters
+    setPendingTrades,
+    setHoldings,
+    setGroupHoldings,
+    setTransactions,
+    setDcaPlans,
+    setFundTagRecords,
+    setFunds,
+    setFavorites
+  };
+
+  // Split runtime into data (state) and handlers (actions). Consumers read via
+  // useAppRuntime()/useAppRuntimeState()/useAppRuntimeActions(). Deep memoization
+  // of these objects is deferred until the page setters are useCallback-stabilized
+  // (tracked for Task 3 profiling); behavior here is identical to the prior single
+  // rt bundle, with all content still mounted in the single-route phase.
+  const runtimeState = {
+    mainTab,
+    isMobile,
+    mobileHomeTabVisible,
+    user,
+    userAvatar,
+    lastSyncTime,
+    isSyncing,
+    theme,
+    refreshing,
+    refreshMs,
+    funds,
+    favorites,
+    groups,
+    navbarHeight,
+    filterBarHeight,
+    canLeft,
+    canRight,
+    isSearchFocused,
+    selectedFunds,
+    searchTerm,
+    showDropdown,
+    searchResults,
+    isSearching,
+    isScanning,
+    error,
+    shouldShowMarketIndex,
+    showPortfolioSummaryTab,
+    currentTab,
+    viewMode,
+    mobileSortDisplayMode,
+    pcSortDisplayMode,
+    sortBy,
+    sortOrder,
+    sortRules,
+    scopedFunds,
+    displayFunds,
+    holdingsForTabWithLinked,
+    summaryTabPortfolioTotals,
+    summaryCardItems,
+    isGroupSummarySticky,
+    maskAmounts,
+    shouldShowGroupFundSearch,
+    groupFundSearchTerm,
+    pcFundTableData,
+    fundExtraDataByCode,
+    linkedHoldingsForAllFav,
+    todayStr,
+    dcaPlansForTab,
+    percentModes,
+    todayPercentModes,
+    currentFundDailyEarnings,
+    valuationSeries,
+    collapsedCodes,
+    collapsedTrends,
+    collapsedValuationTrends,
+    collapsedEarnings,
+    transactionsForTab,
+    isTradingDay,
+    fundTagListsByCode,
+    groupTotalHoldingAmount,
+    hasVisitedMarketTab
+  };
+
+  const runtimeActions = {
+    setMainTab,
+    syncUserConfig,
+    handleOpenLogin,
+    handleLogout,
+    handleThemeToggle,
+    manualRefresh,
+    refreshCycleStartRef,
+    navbarRef,
+    filterBarRef,
+    tabsRef,
+    handleMouseDown,
+    handleMouseLeaveOrUp,
+    handleMouseMove,
+    handleWheel,
+    updateTabOverflow,
+    setIsSearchFocused,
+    toggleSelectFund,
+    dropdownRef,
+    inputRef,
+    handleSearchInput,
+    setShowDropdown,
+    handleScanClick,
+    addFund,
+    setIsUpdateModalOpen,
+    handleMobileSearchClick,
+    triggerCustomSettingsSync,
+    setCurrentTab,
+    handleTabClick,
+    setGroupModalOpen,
+    setGroupManageOpen,
+    applyViewMode,
+    setSortSettingOpen,
+    setSortBy,
+    setSortOrder,
+    startTransition,
+    setAddFundToGroupOpen,
+    getHoldingProfitForTab,
+    setIsGroupSummarySticky,
+    setMaskAmounts,
+    setGroupFundSearchTerm,
+    handleReorder,
+    handleRemoveFundEntry,
+    removeFundsFromCurrentTabHandler,
+    handleMoveFunds,
+    pcBatchClearSelectionRef,
+    handleToggleFavoriteRow,
+    handleHoldingAmountClickRow,
+    handleHoldingProfitClickRow,
+    fundDetailDialogCloseRef,
+    fundDetailDrawerCloseRef,
+    getFundCardPropsForRow,
+    openFundTagsEdit,
+    mobileBatchClearSelectionRef,
+    handleFundCardDrawerOpenChange,
+    handleMobileSettingModalOpenChange,
+    toggleFavorite,
+    openHoldingModal,
+    openActionModal,
+    openDataSourceModal,
+    togglePercentMode,
+    toggleTodayPercentMode,
+    toggleCollapse,
+    toggleTrendCollapse,
+    toggleValuationTrendCollapse,
+    toggleEarningsCollapse,
+    fileInputRef,
+    handleFilesUpload,
+    handleMarketTabAddFund,
+    setSettingsOpen,
+    setPortfolioEarningsOpen,
+    setIsLogoutConfirmOpen,
+    setTutorialDrawerOpen,
+    setUpdateLogOpen,
+    setFeedbackNonce,
+    setFeedbackOpen,
+    setDonateOpen,
+    _ms
+  };
+
+  return (
+    <AppRuntimeProvider state={runtimeState} actions={runtimeActions}>
+      <NavLayout
+        mainTab={mainTab}
+        setMainTab={setMainTab}
+        isMobile={isMobile}
+        containerRef={containerRef}
+        containerClassName={containerClassName}
+        containerWidth={containerWidth}
+        showThemeTransition={showThemeTransition}
+        setShowThemeTransition={setShowThemeTransition}
+        mobileBottomNavHidden={mobileBottomNavHidden}
+      >
+        {children}
+        {/* 弹框渲染层 - 独立组件，订阅 useModalStore，不触发重渲染 */}
+        <ModalsLayer callbacksRef={modalCbRef} />
+      </NavLayout>
+    </AppRuntimeProvider>
+  );
+}

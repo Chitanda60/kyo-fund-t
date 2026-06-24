@@ -13,10 +13,11 @@ import GroupSummary from '@/app/components/GroupSummary';
 import SearchFund from '@/app/components/SearchFund';
 import FundListView from '@/app/components/FundListView';
 import { SUMMARY_TAB_ID } from '@/app/constants';
+import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 
 // Render-only content for the "home" main tab.
-// State/handlers come from page.jsx via the `rt` runtime bundle (moves to context in Task 3).
-export default function HomePageContent({ rt }) {
+// State/handlers come from the persistent AppShell via AppRuntimeContext.
+export default function HomePageContent() {
   const {
     mainTab,
     filterBarRef,
@@ -117,7 +118,7 @@ export default function HomePageContent({ rt }) {
     setFeedbackOpen,
     _ms,
     setDonateOpen
-  } = rt;
+  } = useAppRuntime();
 
   return (
     <div style={{ display: mainTab === 'home' ? 'contents' : 'none' }}>

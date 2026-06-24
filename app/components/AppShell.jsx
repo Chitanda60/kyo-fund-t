@@ -347,13 +347,6 @@ export default function AppShell({ children }) {
 
   // Main tab is now URL-derived; navigation pushes routes instead of setting state.
   const { mainTab, setMainTab } = useMainTabRoute();
-  const [hasVisitedMarketTab, setHasVisitedMarketTab] = useState(false);
-
-  useEffect(() => {
-    if (mainTab === 'market' && !hasVisitedMarketTab) {
-      setHasVisitedMarketTab(true);
-    }
-  }, [mainTab, hasVisitedMarketTab]);
 
   const [mobileBottomNavHidden, setMobileBottomNavHidden] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -1659,9 +1652,6 @@ export default function AppShell({ children }) {
     .filter(Boolean)
     .join(' ');
 
-  /** 移动端底部 Tab 切换时保留首页 DOM，用显隐代替卸载 */
-  const mobileHomeTabVisible = mainTab === 'home' || mainTab === 'market';
-
   /** PC / 移动端行、FundCard 共用：统一 name / fundName 后走单删逻辑 */
   const handleRemoveFundEntry = useCallback(
     (rowOrFund) => {
@@ -2005,7 +1995,6 @@ export default function AppShell({ children }) {
   const runtimeState = {
     mainTab,
     isMobile,
-    mobileHomeTabVisible,
     user,
     userAvatar,
     lastSyncTime,
@@ -2062,8 +2051,7 @@ export default function AppShell({ children }) {
     transactionsForTab,
     isTradingDay,
     fundTagListsByCode,
-    groupTotalHoldingAmount,
-    hasVisitedMarketTab
+    groupTotalHoldingAmount
   };
 
   const runtimeActions = {

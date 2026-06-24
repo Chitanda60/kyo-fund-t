@@ -19,7 +19,6 @@ import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 // State/handlers come from the persistent AppShell via AppRuntimeContext.
 export default function HomePageContent() {
   const {
-    mainTab,
     filterBarRef,
     navbarHeight,
     canLeft,
@@ -121,7 +120,7 @@ export default function HomePageContent() {
   } = useAppRuntime();
 
   return (
-    <div style={{ display: mainTab === 'home' ? 'contents' : 'none' }}>
+    <div style={{ display: 'contents' }}>
       <div className="grid">
         <div className="col-12">
           <div

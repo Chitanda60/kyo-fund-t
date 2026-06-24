@@ -9,7 +9,6 @@ import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 // State/handlers come from page.jsx via the `rt` runtime bundle (moves to context in Task 3).
 export default function MinePageContent() {
   const {
-    mainTab,
     isMobile,
     user,
     userAvatar,
@@ -26,7 +25,7 @@ export default function MinePageContent() {
 
   return (
     <MineTab
-      visible={mainTab === 'mine'}
+      visible
       user={user}
       userAvatar={userAvatar}
       lastSyncDisplay={lastSyncTime ? dayjs(lastSyncTime).format('MM-DD HH:mm') : null}

@@ -513,23 +513,7 @@ export function useFundMutations({
       return next;
     });
 
-    // 同步删除该基金的每日收益数据
-    try {
-      setFundDailyEarnings((prev) => {
-        if (!isPlainObject(prev)) return prev;
-        let changed = false;
-        const next = { ...prev };
-        Object.keys(next).forEach((scopeKey) => {
-          const bucket = next[scopeKey];
-          if (!isPlainObject(bucket) || !(removeCode in bucket)) return;
-          const nb = { ...bucket };
-          delete nb[removeCode];
-          next[scopeKey] = nb;
-          changed = true;
-        });
-        return changed ? next : prev;
-      });
-    } catch {}
+    // 2.3.1：删除基金时保留其每日收益数据（不再删除 fundDailyEarnings）
 
     // 同步删除该基金的定投计划（所有 scope）
     setDcaPlans((prev) => {

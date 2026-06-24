@@ -93,3 +93,5 @@ cli/
 
 # Playwright MCP browser artifacts (screenshots, snapshots)
 .playwright-mcp/
+
+download/

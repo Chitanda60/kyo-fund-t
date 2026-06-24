@@ -270,8 +270,10 @@ export async function fetchFundPeriodReturns(fundCode, { cacheTime = 60 * 60 * 1
   }
 }
 
-export const fetchFundHistory = async (code, range = '1m') => {
+export const fetchFundHistory = async (code, range = '1m', options = {}) => {
   if (typeof window === 'undefined') return [];
+  const { netValueType = 'unit' } = options;
+  const useAccumulatedNetValue = netValueType === 'accumulated';
 
   const end = nowInTz();
   let start = end.clone();
@@ -299,11 +301,15 @@ export const fetchFundHistory = async (code, range = '1m') => {
       start = start.subtract(1, 'month');
   }
 
-  // 业绩走势统一走 pingzhongdata.Data_netWorthTrend，
+  // 业绩走势默认走 pingzhongdata.Data_netWorthTrend；需要累计净值展示时走 Data_ACWorthTrend。
   // 同时附带 Data_grandTotal（若存在，格式为 [{ name, data: [[ts, val], ...] }, ...]）
   try {
     const pz = await fetchFundPingzhongdata(code);
-    const trend = pz?.Data_netWorthTrend;
+    const unitTrend = pz?.Data_netWorthTrend;
+    const accumulatedTrend = pz?.Data_ACWorthTrend;
+    const hasAccumulatedTrend = isArray(accumulatedTrend) && accumulatedTrend.length > 0;
+    const trend = useAccumulatedNetValue && hasAccumulatedTrend ? accumulatedTrend : unitTrend;
+    const actualNetValueType = useAccumulatedNetValue && hasAccumulatedTrend ? 'accumulated' : 'unit';
     const grandTotal = pz?.Data_grandTotal;
 
     if (isArray(trend) && trend.length) {
@@ -311,9 +317,44 @@ export const fetchFundHistory = async (code, range = '1m') => {
       const endMs = end.endOf('day').valueOf();
 
       // 若起始日没有净值，则往前推到最近一日有净值的数据作为有效起始
+      const normalizeTrendPoint = (d) => {
+        if (isArray(d)) {
+          const ts = Number(d[0]);
+          const value = Number(d[1]);
+          if (!Number.isFinite(ts) || !Number.isFinite(value)) return null;
+          return { x: ts, y: value, equityReturn: null };
+        }
+        if (d && isNumber(d.x) && Number.isFinite(Number(d.y))) return d;
+        return null;
+      };
+      const buildValueByDate = (list) => {
+        const out = new Map();
+        if (!isArray(list)) return out;
+        list
+          .map(normalizeTrendPoint)
+          .filter(Boolean)
+          .forEach((d) => {
+            const date = dayjs(d.x).tz(TZ).format('YYYY-MM-DD');
+            out.set(date, Number(d.y));
+          });
+        return out;
+      };
       const validTrend = trend
-        .filter((d) => d && isNumber(d.x) && Number.isFinite(Number(d.y)) && d.x <= endMs)
+        .map(normalizeTrendPoint)
+        .filter((d) => d && d.x <= endMs)
         .sort((a, b) => a.x - b.x);
+      const unitValueByDate = buildValueByDate(unitTrend);
+      const accumulatedValueByDate = buildValueByDate(accumulatedTrend);
+      const unitReturnByDate = new Map();
+      if (useAccumulatedNetValue && isArray(unitTrend)) {
+        unitTrend
+          .filter((d) => d && isNumber(d.x))
+          .forEach((d) => {
+            const date = dayjs(d.x).tz(TZ).format('YYYY-MM-DD');
+            const equityReturn = isNumber(d.equityReturn) ? Number(d.equityReturn) : null;
+            if (equityReturn != null) unitReturnByDate.set(date, equityReturn);
+          });
+      }
       const startDayEndMs = startMs + 24 * 60 * 60 * 1000 - 1;
       const hasPointOnStartDay = validTrend.some((d) => d.x >= startMs && d.x <= startDayEndMs);
       let effectiveStartMs = startMs;
@@ -326,10 +367,22 @@ export const fetchFundHistory = async (code, range = '1m') => {
         .filter((d) => d.x >= effectiveStartMs && d.x <= endMs)
         .map((d) => {
           const value = Number(d.y);
-          const equityReturn = isNumber(d.equityReturn) ? Number(d.equityReturn) : null;
           const date = dayjs(d.x).tz(TZ).format('YYYY-MM-DD');
-          return { date, value, equityReturn };
+          const equityReturn = useAccumulatedNetValue
+            ? (unitReturnByDate.get(date) ?? null)
+            : isNumber(d.equityReturn)
+              ? Number(d.equityReturn)
+              : null;
+          return {
+            date,
+            value,
+            unitNetValue: unitValueByDate.get(date) ?? (actualNetValueType === 'unit' ? value : null),
+            accumulatedNetValue:
+              accumulatedValueByDate.get(date) ?? (actualNetValueType === 'accumulated' ? value : null),
+            equityReturn
+          };
         });
+      out.netValueType = actualNetValueType;
 
       // 解析 Data_grandTotal 为多条对比曲线，使用同一有效起始日
       if (isArray(grandTotal) && grandTotal.length) {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storageStore } from '../stores';
 
-const ANNOUNCEMENT_KEY = 'hasClosedAnnouncement_v2.2.1';
+const ANNOUNCEMENT_KEY = 'hasClosedAnnouncement_v2.3.1';
 
 export default function Announcement() {
   const [isVisible, setIsVisible] = useState(false);
@@ -108,10 +108,10 @@ export default function Announcement() {
                 paddingRight: '4px'
               }}
             >
-              <p>v2.2.1 版本更新内容：</p>
-              <p>1. 行情页面分页数量调整为 5 页。</p>
-              <p>2. 盘中支持显示昨日最准及昨日误差（限免）。</p>
-              <p>3. 新增估值走势（限免）。</p>
+              <p>v2.3.1 版本更新内容：</p>
+              <p>1. 分组支持以下拉形式展示（需在设置中开启）。</p>
+              <p>2. 修复 PC 端列宽拖拽问题。</p>
+              <p>3. 导入基金弹框允许选择是否导入推荐的基金标签。</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
               <button

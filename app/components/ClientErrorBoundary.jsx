@@ -8,12 +8,21 @@ import { toast as sonnerToast } from 'sonner';
 import { useModalStore } from '../stores';
 
 function getErrorMessage(error) {
-  if (isError(error) && error.message) return error.message;
-  if (isString(error) && error.trim()) return error;
-  if (isString(error?.message) && error.message.trim()) return error.message;
-  if (isString(error?.reason) && error.reason.trim()) return error.reason;
-  if (isString(error?.type) && error.type.trim()) return error.type;
-  return '未知运行错误';
+  let msg = '未知运行错误';
+  if (isError(error) && error.message) msg = error.message;
+  else if (isString(error) && error.trim()) msg = error;
+  else if (isString(error?.message) && error.message.trim()) msg = error.message;
+  else if (isString(error?.reason) && error.reason.trim()) msg = error.reason;
+  else if (isString(error?.type) && error.type.trim()) msg = error.type;
+
+  if (
+    msg.includes('Failed to load chunk') ||
+    msg.includes('Loading chunk') ||
+    (error && (error.name === 'ChunkLoadError' || error.type === 'ChunkLoadError'))
+  ) {
+    return `${msg}\n\n提示：检测到静态资源加载失败，可能是系统发布了新版本，请刷新浏览器页面以解决该问题。`;
+  }
+  return msg;
 }
 
 export function shouldSilenceClientError(error) {
@@ -33,9 +42,15 @@ export function notifyClientError(error, options = {}) {
     }
   } catch {}
 
+  const desc = message.includes('\n') ? (
+    <span style={{ whiteSpace: 'pre-line', display: 'block', marginTop: '4px' }}>{message}</span>
+  ) : (
+    message
+  );
+
   sonnerToast.error(title, {
     id: options.toastId || 'client-runtime-error',
-    description: message,
+    description: desc,
     duration: 8000
   });
 }
@@ -91,10 +106,14 @@ class ClientErrorBoundaryInner extends React.Component {
             <AlertTriangleIcon className="h-5 w-5 text-destructive" />
             <h1 className="m-0 text-lg font-semibold">页面遇到异常</h1>
           </div>
-          <p className="m-0 text-sm leading-relaxed text-[var(--muted-foreground)]">
+          <p className="m-0 text-sm leading-relaxed text-[var(--muted-foreground)]" style={{ whiteSpace: 'pre-line' }}>
             {getErrorMessage(this.state.error)}
           </p>
-          <button type="button" className="button primary h-11 rounded-xl px-4" onClick={this.handleReset}>
+          <button
+            type="button"
+            className="button primary flex h-11 items-center gap-2 rounded-xl px-4"
+            onClick={this.handleReset}
+          >
             <RotateCcwIcon className="h-4 w-4" />
             <span>重新尝试</span>
           </button>

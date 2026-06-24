@@ -221,6 +221,23 @@ From `env.example`:
 - Node version in workflow is 20.
 - `next.config.js` uses static export and unoptimized images.
 
+## UPSTREAM SYNC
+
+- Upstream working copy lives at `download/real-time-fund`.
+- Current project was recreated from upstream project files after dropping Git history.
+- The recorded upstream baseline commit is:
+
+```text
+ffaf4b090960ecc715a32556bc02b513cce07159
+feat：悬浮框字体大小调整
+2026-06-17 17:25:47 +0800
+```
+
+- This baseline was verified by comparing 190 project files from current initial commit `be6cfa5` against `download/real-time-fund` while excluding AI/IDE/docs noise (`.agent/`, `.claude/`, `.cursor/`, `.trae/`, `.idea/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`). Result: `190/190` matching project file blobs.
+- Future upstream update workflow: compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, then port relevant changes into the current refactored architecture.
+- Do not directly copy upstream files over current files; current project has route-backed tabs, `AppShell`, split fund services, feature hooks, unified `storageStore`, and split CSS.
+- After successfully porting upstream changes, update `doc/upstream-sync.md` and this baseline only when the current project has fully absorbed that upstream range.
+
 ## DOCUMENTATION
 
 - `README.md` — user-facing overview/setup.
@@ -233,6 +250,7 @@ From `env.example`:
 - `doc/adr/0001-preserve-ui-refactor.md` — preserve-UI refactor ADR.
 - `doc/refactor-regression-checklist.md` — manual regression checklist.
 - `doc/storage-snapshot-scenarios.md` — storage snapshot scenarios.
+- `doc/upstream-sync.md` — upstream baseline commit and sync workflow.
 - `docs/plans/2026-06-17-preserve-ui-refactor.md` — source refactor plan.
 - `docs/plans/2026-06-17-preserve-ui-refactor-execution-steps.md` — execution runbook.
 

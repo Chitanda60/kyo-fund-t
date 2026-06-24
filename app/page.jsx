@@ -1,11 +1,10 @@
 'use client';
 
-import MainTabsContent from './components/pages/MainTabsContent';
+import HomePageContent from './components/pages/HomePageContent';
 
-// Route content for `/`. All runtime state/effects/handlers live in the persistent
-// AppShell (mounted from app/layout.jsx); this page renders only the main-tab content,
-// which reads data/actions from AppRuntimeContext. Single-route phase: MainTabsContent
-// still renders home/market/mine via the existing hidden-by-style guards.
+// Route content for `/`. Shared chrome (navbar/announcement/market index), all state,
+// and ModalsLayer live in the persistent AppShell (app/layout.jsx); this page renders
+// only the home portfolio content, which reads data/actions from AppRuntimeContext.
 export default function HomePage() {
-  return <MainTabsContent />;
+  return <HomePageContent />;
 }

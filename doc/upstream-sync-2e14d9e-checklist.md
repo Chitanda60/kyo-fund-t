@@ -7,17 +7,17 @@
 
 ## Decisions
 
-- [ ] Auto/best data source: port
-- [ ] Import auto source switch: port
-- [ ] Recommended tags: port
-- [ ] Data source column and badges: port
-- [ ] Personalized sort top/pin: port
-- [ ] Group dropdown display settings: port
-- [ ] Width/slider/dialog fixes: port
-- [ ] Chart cumulative net value: port
-- [ ] Error boundary/static asset wording: port
-- [ ] QR image updates (`app/assets/weChatGroup.jpg`): decide
-- [ ] AI/IDE metadata: ignore
+- [x] Auto/best data source: port
+- [x] Import auto source switch: port
+- [x] Recommended tags: port
+- [x] Data source column and badges: port
+- [x] Personalized sort top/pin: port
+- [x] Group dropdown display settings: port
+- [x] Width/slider/dialog fixes: port
+- [x] Chart cumulative net value: port
+- [x] Error boundary/static asset wording: port
+- [x] QR image updates (`app/assets/weChatGroup.jpg`): skipped (asset-only, not synced)
+- [x] AI/IDE metadata: ignore (intentionally skipped)
 
 ## Real product diff in range (verified)
 

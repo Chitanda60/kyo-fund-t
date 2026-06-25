@@ -65,14 +65,14 @@ When `download/real-time-fund` updates:
 1. Inspect upstream commits since the recorded baseline.
 
 ```bash
-git -C download/real-time-fund log --oneline ffaf4b090960ecc715a32556bc02b513cce07159..HEAD
+git -C download/real-time-fund log --oneline 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
 ```
 
 2. Inspect changed files and stats.
 
 ```bash
-git -C download/real-time-fund diff --stat ffaf4b090960ecc715a32556bc02b513cce07159..HEAD
-git -C download/real-time-fund diff --name-status ffaf4b090960ecc715a32556bc02b513cce07159..HEAD
+git -C download/real-time-fund diff --stat 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
+git -C download/real-time-fund diff --name-status 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
 ```
 
 3. Group changes by product area:

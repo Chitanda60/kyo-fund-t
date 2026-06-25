@@ -1311,3 +1311,51 @@ Stop and ask for review if any of these happen:
 - `npm run lint` passes.
 - `npm run build` passes.
 - `doc/upstream-sync.md`, `AGENTS.md`, and accessible `[[upstream-sync-baseline]]` memory are advanced only after successful verification.
+
+---
+
+## 审核意见（2026-06-25）
+
+本次执行已覆盖 upstream `ffaf4b0..2e14d9e` 的大部分功能迁移，当前工作区干净，2.3.1 相关提交已进入当前分支，自动数据源、推荐标签、数据源准确度展示、分组下拉、tab 溢出滚动按钮、页面宽度设置、Supabase RPC schema 等主要内容均已在当前重构架构中找到对应实现。
+
+但不建议直接判定为 100% 完成，仍有以下需要补齐或复核的事项：
+
+1. `app/features/portfolio/useFundMutations.js` 中单个删除基金已保留 `fundDailyEarnings`，但批量删除路径仍会清理 `fundDailyEarnings`。这与本计划 Task 7 中“删除基金时保留每日收益数据”的要求不一致，应先修复。
+2. 本次复核运行 `npm run build` 时停留在 `Creating an optimized production build ...`，且 Next.js 提示 workspace root 被推断为 `/Users/apple`。虽然执行记录中写有 build PASS，但当前复核未能重新确认，应处理 root 推断问题后再次验证。
+3. `doc/upstream-sync.md` 已将当前 baseline 更新为 `2e14d9e3a3617a228fa4c28305b3b5408a93a43e`，但未来同步命令示例仍引用旧锚点 `ffaf4b090960ecc715a32556bc02b513cce07159`，容易误导下一轮同步，应改为从新 baseline 对比。
+4. `doc/upstream-sync-2e14d9e-checklist.md` 前部仍存在未勾选/TODO 状态，和结尾“已完成”的描述不完全一致，应统一文档状态。
+5. `npm run lint` 当前可以通过，但会扫描 `download/real-time-fund` 下的 upstream 工作副本，导致 warning 数量被外部目录污染。建议在 ESLint ignore 中排除 `download/**`，或将 upstream 工作副本移出当前项目目录。
+
+建议处理顺序：
+
+1. 修复批量删除基金仍删除 `fundDailyEarnings` 的问题。
+2. 修正 `doc/upstream-sync.md` 中未来同步命令的 baseline。
+3. 统一 checklist 中的完成状态。
+4. 排除 `download/**` 对 lint/build 验证的干扰，并处理 Next.js workspace root 推断问题。
+5. 重新运行 `npm run lint` 和 `npm run build`，确认通过后再将本计划标记为最终完成。
+
+---
+
+## 完成度复核意见（2026-06-25，基于上游真实提交逐条核对）
+
+对上方「审核意见」5 点做了实证核对，结论：**1 点为误判（无需修改），1 点已解决，其余 3 点为轻微的文档/配置整理，均不影响运行时**。代码与功能层面实质已完成且忠于上游。
+
+**逐条核对：**
+
+1. **批量删除 `fundDailyEarnings` —— ❌ 误判，无需修改。** 计划书正文此处与上游真实提交不符：「删除基金不删除收益数据」提交 `d2fef6e` 仅从 `page.jsx` 移除了 18 行 = **单条删除那一个块**，并未改动批量路径；同步目标 `2e14d9e`（在 `d2fef6e` 之后）的 `removeFundsBulk` 仍执行 `delete nb[c]`，即**批量删除依旧删 earnings**。当前 `app/features/portfolio/useFundMutations.js`（单条=保留、批量=删除）与上游目标**完全一致**。同步应以上游最终状态为准，故此为正确行为，不应"修复"。
+2. **build 未确认 + workspace root 推断 —— ✅ 已解决。** `npm run build` 多次通过（预渲染 `/`、`/market`、`/mine`、`/_not-found`、`/icon.svg`）。root 推断警告为 CLAUDE.md 已注明的「多 lockfile（野生 yarn.lock）、无害」既知项。
+3. **`doc/upstream-sync.md` 下次同步命令仍引用旧锚点 —— ⚠️ 有效·轻微。** 第 68/74 行示例仍为 `ffaf4b0..HEAD`，baseline 已推进到 `2e14d9e`，应改为 `2e14d9e..HEAD`。
+4. **checklist 的 Decisions 仍全为未勾选 —— ⚠️ 有效·轻微。** `doc/upstream-sync-2e14d9e-checklist.md` 顶部 `- [ ]` 与末尾「已完成」描述矛盾，应统一为 `[x]`。
+5. **lint 扫描 `download/` —— ⚠️ 有效·轻微。** `eslint.config.mjs` 未排除 `download/**`，实测仅 `download/real-time-fund/app/page.jsx` 单文件即报 18 warnings，污染 `npm run lint`；应在 ignore 加入 `download/**`。
+
+**总体判定：**
+
+| 领域                                 | 完成度                            |
+| ------------------------------------ | --------------------------------- |
+| 代码移植（Task 1–11 + 遗留 UI 收尾） | 完成·已提交·忠于上游              |
+| build / lint（0 errors）             | 通过                              |
+| 运行时                               | 0 console errors、显示 2.3.1 公告 |
+| 文档/配置整理（#3/#4/#5）            | 3 项待办（不影响运行）            |
+| Supabase 数据投入                    | 未做（代码外·运维工作）           |
+
+**结论：功能层面已完成且忠于上游，无阻碍标记「最终完成」的实现问题。** 将上方 #1 判为「需先修复」属误判。剩余仅 #3/#4/#5 三处轻微文档/lint 整理（各 1 至数行），以及 Supabase 侧的数据投入（`fund_best_source` / `fund_related` / `fund_topic`，使自动数据源与推荐标签真正返回数据）。

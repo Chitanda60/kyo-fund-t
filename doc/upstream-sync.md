@@ -16,6 +16,16 @@ feat：分组下拉宽度调整
 2026-06-24 09:52:09 +0800
 ```
 
+The baseline is also marked in the upstream checkout by the local git tag
+**`sync-baseline`** (annotated, points at `2e14d9e`). Prefer referencing it by
+name instead of hardcoding the SHA — `git -C download/real-time-fund diff
+sync-baseline..HEAD` always shows exactly the unported range. After finishing a
+sync, move the tag forward to the newly-synced commit:
+
+```bash
+git -C download/real-time-fund tag -f -a sync-baseline -m "Sync baseline: <commit> (<date>)" <new-commit>
+```
+
 The 2.3.1 sync (`ffaf4b0..2e14d9e`) was ported into the refactored architecture
 on 2026-06-24 (see `doc/upstream-sync-2e14d9e-checklist.md` and the `feat:`/`fix:`
 commits). Ported: best-source cached APIs, auto data-source selection, import
@@ -65,14 +75,15 @@ When `download/real-time-fund` updates:
 1. Inspect upstream commits since the recorded baseline.
 
 ```bash
-git -C download/real-time-fund log --oneline 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
+git -C download/real-time-fund fetch origin
+git -C download/real-time-fund log --oneline sync-baseline..origin/main
 ```
 
 2. Inspect changed files and stats.
 
 ```bash
-git -C download/real-time-fund diff --stat 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
-git -C download/real-time-fund diff --name-status 2e14d9e3a3617a228fa4c28305b3b5408a93a43e..HEAD
+git -C download/real-time-fund diff --stat sync-baseline..origin/main
+git -C download/real-time-fund diff --name-status sync-baseline..origin/main
 ```
 
 3. Group changes by product area:

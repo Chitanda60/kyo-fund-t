@@ -24,18 +24,16 @@ delete-fund-keeps-earnings, removal of group-holdings seeding, cumulative net
 value charts, client error handling, PC width clamp, group-dropdown/width
 settings store+modal+save wiring, version 2.3.1.
 
-**Deferred from this sync (UI polish — track before next sync):**
+The full `ffaf4b0..2e14d9e` code range is now ported (incl. the group-tab dropdown +
+tab-overflow scroll buttons in HomePageContent/AppShell and the `.tabs`/`.tabs-scroll-*`
+/`.name-cell` CSS merge into `app/styles/components.css`). Verified: lint 0 errors,
+build prerenders all routes, 0 console errors, the in-app 2.3.1 announcement renders.
 
-- HomePageContent: render group tabs as a dropdown when `showGroupDropdown` is on,
-  and the tab-overflow scroll buttons (`scrollAreaRef`/`hasTabOverflow` + Resize/
-  MutationObserver in AppShell). The setting saves/round-trips; only the home
-  tab-bar rendering is not yet rewritten.
-- CSS: map upstream `app/globals.css` `.table-row-scroll .name-cell` PC-tag styles
-  and `.tabs`/`.tabs-scroll-*` rules into `app/styles/components.css` (a real merge,
-  not append — the upstream change modifies the existing `.tabs` rule).
-- Supabase: deploy `get_fund_best_source` / `get_fund_recommended_tags` (SQL added
-  to `doc/supabase.sql` §4) and populate data, to make auto-source/recommended-tags
-  functional (code is in and degrades safely until then).
+**Operational follow-up (not code — your side):** the two Supabase RPCs
+(`get_fund_best_source` / `get_fund_recommended_tags`) are deployed (SQL in
+`doc/supabase.sql` §4) and verified reachable (HTTP 200, empty results). To make
+auto-source / recommended-tags actually do something, populate `fund_best_source`
+and the `fund_related`/`fund_topic` tables. Until then the features degrade safely.
 
 The previous baseline was `ffaf4b0` (the current repository's first commit):
 

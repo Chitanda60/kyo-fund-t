@@ -233,7 +233,7 @@ feat：分组下拉宽度调整
 2026-06-24 09:52:09 +0800
 ```
 
-- The 2.3.1 range `ffaf4b0..2e14d9e` was ported on 2026-06-24 (see `doc/upstream-sync-2e14d9e-checklist.md` and `doc/upstream-sync.md`). A few UI-polish items are deferred and listed in `doc/upstream-sync.md` (home group-dropdown tab rendering + tab-overflow scroll buttons; `.name-cell`/`.tabs-scroll-*` CSS merge into `app/styles/components.css`; deploying the two Supabase RPCs).
+- The 2.3.1 range `ffaf4b0..2e14d9e` was fully ported on 2026-06-24/25 (see `doc/upstream-sync-2e14d9e-checklist.md` and `doc/upstream-sync.md`), including the home group-dropdown tab rendering + tab-overflow scroll buttons and the `.name-cell`/`.tabs-scroll-*` CSS merge into `app/styles/components.css`. The only remaining work is operational (not code): populate the Supabase `fund_best_source` / `fund_related` / `fund_topic` data so auto-source + recommended-tags return results (the RPCs are deployed + reachable).
 - The original baseline `ffaf4b0` was verified by comparing 190 project files from the repo's first commit `be6cfa5` against `download/real-time-fund` (excluding AI/IDE/docs noise): `190/190` matching blobs.
 - Future upstream update workflow: compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, then port relevant changes into the current refactored architecture.
 - Do not directly copy upstream files over current files; current project has route-backed tabs, `AppShell`, split fund services, feature hooks, unified `storageStore`, and split CSS.

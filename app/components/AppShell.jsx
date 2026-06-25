@@ -269,6 +269,7 @@ export default function AppShell({ children }) {
   const [todayPercentModes, setTodayPercentModes] = useState({}); // { [code]: boolean }
 
   const tabsRef = useRef(null);
+  const scrollAreaRef = useRef(null);
 
   // ---- Modal store setter compatibility wrappers ----
   const _ms = useModalStore.setState;
@@ -351,6 +352,7 @@ export default function AppShell({ children }) {
 
   const shouldShowMarketIndex = (isMobile ? showMarketIndexMobile : showMarketIndexPc) || mainTab === 'market';
   const shouldShowGroupFundSearch = isMobile ? showGroupFundSearchMobile : showGroupFundSearchPc;
+  const showGroupDropdown = isMobile ? showGroupDropdownMobile : showGroupDropdownPc;
 
   // 交易日检测（抽离到 useTradingDay）
   const { isTradingDay } = useTradingDay();
@@ -520,12 +522,12 @@ export default function AppShell({ children }) {
 
   // 自动滚动选中 Tab 到可视区域
   useEffect(() => {
-    if (!tabsRef.current) return;
+    if (!scrollAreaRef.current) return;
     if (currentTab === 'all' || currentTab === SUMMARY_TAB_ID) {
-      tabsRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+      scrollAreaRef.current.scrollTo({ left: 0, behavior: 'smooth' });
       return;
     }
-    const activeTab = tabsRef.current.querySelector('.tab.active');
+    const activeTab = tabsRef.current?.querySelector('.tab.active');
     if (activeTab) {
       activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
@@ -535,6 +537,7 @@ export default function AppShell({ children }) {
   const dragStateRef = useRef({ isDragging: false, startX: 0, startY: 0, hasDragged: false });
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const [hasTabOverflow, setHasTabOverflow] = useState(false);
 
   const handleAction = (type, fund, groupIdOverride) => {
     const groupId = getScopedGroupId(groupIdOverride);
@@ -560,7 +563,7 @@ export default function AppShell({ children }) {
   };
 
   const handleMouseDown = (e) => {
-    if (!tabsRef.current) return;
+    if (!scrollAreaRef.current) return;
     dragStateRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, hasDragged: false };
   };
 
@@ -570,19 +573,29 @@ export default function AppShell({ children }) {
 
   const handleMouseMove = (e) => {
     const ds = dragStateRef.current;
-    if (!ds.isDragging || !tabsRef.current) return;
+    if (!ds.isDragging || !scrollAreaRef.current) return;
     const dx = e.clientX - ds.startX;
     const dy = e.clientY - ds.startY;
     if (!ds.hasDragged && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
     ds.hasDragged = true;
     e.preventDefault();
-    tabsRef.current.scrollLeft -= e.movementX;
+    scrollAreaRef.current.scrollLeft -= e.movementX;
   };
 
   const handleWheel = (e) => {
-    if (!tabsRef.current) return;
+    if (!scrollAreaRef.current) return;
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    tabsRef.current.scrollLeft += delta;
+    scrollAreaRef.current.scrollLeft += delta;
+  };
+
+  const scrollTabsLeftBtn = () => {
+    if (!scrollAreaRef.current) return;
+    scrollAreaRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+  };
+
+  const scrollTabsRightBtn = () => {
+    if (!scrollAreaRef.current) return;
+    scrollAreaRef.current.scrollBy({ left: 200, behavior: 'smooth' });
   };
 
   const handleTabClick = (tabId) => {
@@ -591,10 +604,12 @@ export default function AppShell({ children }) {
   };
 
   const updateTabOverflow = () => {
-    if (!tabsRef.current) return;
-    const el = tabsRef.current;
-    setCanLeft(el.scrollLeft > 0);
-    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+    const area = scrollAreaRef.current;
+    if (!area) return;
+    const overflowing = area.scrollWidth > area.clientWidth + 1;
+    setHasTabOverflow(overflowing);
+    setCanLeft(area.scrollLeft > 0);
+    setCanRight(area.scrollLeft < area.scrollWidth - area.clientWidth - 1);
   };
 
   useEffect(() => {
@@ -608,9 +623,31 @@ export default function AppShell({ children }) {
       });
     };
     window.addEventListener('resize', onResize);
+
+    // 额外监听 tabs 容器及内容的尺寸变化（如字体加载、动画结束等）
+    let resizeObserver = null;
+    let mutationObserver = null;
+    const area = scrollAreaRef.current;
+
+    if (area) {
+      resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(area);
+
+      // 监听内部 DOM 的增删或 style 变化（framer-motion 动画会不断改变 style）
+      mutationObserver = new MutationObserver(onResize);
+      mutationObserver.observe(area, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    }
+
     return () => {
       window.removeEventListener('resize', onResize);
       if (rafId) cancelAnimationFrame(rafId);
+      if (resizeObserver) resizeObserver.disconnect();
+      if (mutationObserver) mutationObserver.disconnect();
     };
   }, [groups, funds.length, favorites.size]);
 
@@ -1996,6 +2033,8 @@ export default function AppShell({ children }) {
     filterBarHeight,
     canLeft,
     canRight,
+    hasTabOverflow,
+    showGroupDropdown,
     isSearchFocused,
     selectedFunds,
     searchTerm,
@@ -2052,6 +2091,9 @@ export default function AppShell({ children }) {
     navbarRef,
     filterBarRef,
     tabsRef,
+    scrollAreaRef,
+    scrollTabsLeftBtn,
+    scrollTabsRightBtn,
     handleMouseDown,
     handleMouseLeaveOrUp,
     handleMouseMove,

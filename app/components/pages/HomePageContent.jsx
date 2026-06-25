@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast as sonnerToast } from 'sonner';
 
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { GridIcon, ListIcon, PlusIcon, SettingsIcon, SortIcon } from '@/app/components/Icons';
 import EmptyStateCard from '@/app/components/EmptyStateCard';
@@ -23,7 +25,12 @@ export default function HomePageContent() {
     navbarHeight,
     canLeft,
     canRight,
+    hasTabOverflow,
+    showGroupDropdown,
     tabsRef,
+    scrollAreaRef,
+    scrollTabsLeftBtn,
+    scrollTabsRightBtn,
     handleMouseDown,
     handleMouseLeaveOrUp,
     handleMouseMove,
@@ -119,6 +126,8 @@ export default function HomePageContent() {
     setDonateOpen
   } = useAppRuntime();
 
+  const isGroupDropdownTabActive = currentTab === 'fav' || groups.some((g) => g.id === currentTab);
+
   return (
     <div style={{ display: 'contents' }}>
       <div className="grid">
@@ -138,10 +147,54 @@ export default function HomePageContent() {
             }}
           >
             <div className="tabs-container">
-              <div className="tabs-scroll-area" data-mask-left={canLeft} data-mask-right={canRight}>
+              <div
+                className="tabs-scroll-wrapper"
+                style={{
+                  position: 'relative',
+                  flex: 1,
+                  minWidth: 0,
+                  paddingLeft: !showGroupDropdown && !isMobile && hasTabOverflow ? 32 : 0,
+                  paddingRight: !showGroupDropdown && !isMobile && hasTabOverflow ? 32 : 0,
+                  transition: 'padding 0.2s ease'
+                }}
+              >
+                <AnimatePresence>
+                  {!showGroupDropdown && !isMobile && hasTabOverflow && (
+                    <>
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, y: '-50%', x: 0 }}
+                        animate={{ opacity: 1, scale: 1, y: '-50%', x: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: '-50%', x: 0 }}
+                        whileHover={canLeft ? { scale: 1.1, y: '-50%', x: 0 } : {}}
+                        whileTap={canLeft ? { scale: 0.95, y: '-50%', x: 0 } : {}}
+                        transition={{ duration: 0.15 }}
+                        className={`tabs-scroll-btn left ${!canLeft ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        disabled={!canLeft}
+                        onClick={scrollTabsLeftBtn}
+                      >
+                        <ChevronLeft size={16} />
+                      </motion.button>
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, y: '-50%', x: 0 }}
+                        animate={{ opacity: 1, scale: 1, y: '-50%', x: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: '-50%', x: 0 }}
+                        whileHover={canRight ? { scale: 1.1, y: '-50%', x: 0 } : {}}
+                        whileTap={canRight ? { scale: 0.95, y: '-50%', x: 0 } : {}}
+                        transition={{ duration: 0.15 }}
+                        className={`tabs-scroll-btn right ${!canRight ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        disabled={!canRight}
+                        onClick={scrollTabsRightBtn}
+                      >
+                        <ChevronRight size={16} />
+                      </motion.button>
+                    </>
+                  )}
+                </AnimatePresence>
                 <div
-                  className="tabs"
-                  ref={tabsRef}
+                  className="tabs-scroll-area"
+                  ref={scrollAreaRef}
+                  data-mask-left={!showGroupDropdown && canLeft}
+                  data-mask-right={!showGroupDropdown && canRight}
                   onMouseDown={handleMouseDown}
                   onMouseLeave={handleMouseLeaveOrUp}
                   onMouseUp={handleMouseLeaveOrUp}
@@ -149,70 +202,123 @@ export default function HomePageContent() {
                   onWheel={handleWheel}
                   onScroll={updateTabOverflow}
                 >
-                  <AnimatePresence mode="popLayout">
-                    {showPortfolioSummaryTab && (
+                  <div className="tabs" ref={tabsRef}>
+                    <AnimatePresence mode="popLayout">
+                      {showPortfolioSummaryTab && (
+                        <motion.button
+                          layout
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          key="portfolio-summary"
+                          className={`tab ${currentTab === SUMMARY_TAB_ID ? 'active' : ''}`}
+                          onClick={() => handleTabClick(SUMMARY_TAB_ID)}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
+                        >
+                          汇总
+                        </motion.button>
+                      )}
                       <motion.button
                         layout
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        key="portfolio-summary"
-                        className={`tab ${currentTab === SUMMARY_TAB_ID ? 'active' : ''}`}
-                        onClick={() => handleTabClick(SUMMARY_TAB_ID)}
+                        key="all"
+                        className={`tab ${currentTab === 'all' ? 'active' : ''}`}
+                        onClick={() => handleTabClick('all')}
                         transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
                       >
-                        汇总
+                        全部 ({funds.length})
                       </motion.button>
-                    )}
-                    <motion.button
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      key="all"
-                      className={`tab ${currentTab === 'all' ? 'active' : ''}`}
-                      onClick={() => handleTabClick('all')}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
-                    >
-                      全部 ({funds.length})
-                    </motion.button>
-                    <motion.button
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      key="fav"
-                      className={`tab ${currentTab === 'fav' ? 'active' : ''}`}
-                      onClick={() => handleTabClick('fav')}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
-                    >
-                      自选 ({favorites.size})
-                    </motion.button>
-                    {groups.map((g) => (
-                      <motion.button
-                        layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        key={g.id}
-                        className={`tab ${currentTab === g.id ? 'active' : ''}`}
-                        onClick={() => handleTabClick(g.id)}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
-                      >
-                        {g.name} ({g.codes.length})
-                      </motion.button>
-                    ))}
-                  </AnimatePresence>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button className="icon-button add-group-btn" onClick={() => setGroupModalOpen(true)}>
-                        <PlusIcon width="16" height="16" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>新增分组</p>
-                    </TooltipContent>
-                  </Tooltip>
+                      {!showGroupDropdown && (
+                        <motion.button
+                          layout
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          key="fav"
+                          className={`tab ${currentTab === 'fav' ? 'active' : ''}`}
+                          onClick={() => handleTabClick('fav')}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
+                        >
+                          自选 ({favorites.size})
+                        </motion.button>
+                      )}
+                      {!showGroupDropdown &&
+                        groups.map((g) => (
+                          <motion.button
+                            layout
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            key={g.id}
+                            className={`tab ${currentTab === g.id ? 'active' : ''}`}
+                            onClick={() => handleTabClick(g.id)}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
+                          >
+                            {g.name} ({g.codes.length})
+                          </motion.button>
+                        ))}
+                      {showGroupDropdown && (
+                        <div
+                          key="group-dropdown"
+                          style={{ minWidth: isMobile ? 170 : 210, maxWidth: isMobile ? 230 : 300 }}
+                        >
+                          <Select
+                            value={isGroupDropdownTabActive ? currentTab : ''}
+                            onValueChange={(value) => handleTabClick(value)}
+                          >
+                            <SelectTrigger
+                              className={cn(
+                                'h-4 py-0 text-xs shadow-none',
+                                isGroupDropdownTabActive && 'border-primary/70 text-primary ring-1 ring-primary/25'
+                              )}
+                              style={{
+                                background: isGroupDropdownTabActive
+                                  ? 'color-mix(in srgb, var(--primary) 12%, var(--card-bg))'
+                                  : 'var(--card-bg)',
+                                boxShadow: isGroupDropdownTabActive
+                                  ? '0 0 0 1px rgba(255, 255, 255, 0.05), 0 6px 18px rgba(34, 211, 238, 0.12)'
+                                  : undefined,
+                                height: 32
+                              }}
+                              aria-label="选择分组"
+                            >
+                              <SelectValue placeholder="选择分组" />
+                            </SelectTrigger>
+                            <SelectContent
+                              position="popper"
+                              align="start"
+                              className="max-h-none"
+                              style={{
+                                width: isMobile ? 230 : 300,
+                                maxHeight: 'none'
+                              }}
+                            >
+                              <SelectGroup>
+                                <SelectItem value="fav">自选 ({favorites.size})</SelectItem>
+                                {groups.map((g) => (
+                                  <SelectItem key={g.id} value={g.id}>
+                                    {g.name} ({g.codes.length})
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="icon-button add-group-btn" onClick={() => setGroupModalOpen(true)}>
+                          <PlusIcon width="16" height="16" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>新增分组</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
               {groups.length > 0 && (

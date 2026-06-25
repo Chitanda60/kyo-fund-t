@@ -82,7 +82,12 @@ jobs:
           NEXT_PUBLIC_IS_GITHUB_LOGIN=${{ secrets.NEXT_PUBLIC_IS_GITHUB_LOGIN }}
           EOF
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        # This project has peer-dep conflicts that require --legacy-peer-deps, and
+        # eslint-config-next v16 needs the `typescript` peer even though the app is
+        # JS-only (otherwise `next build`'s lint phase fails). See CLAUDE.md.
+        run: |
+          npm install --legacy-peer-deps
+          npm install typescript --no-save --legacy-peer-deps
       - name: Build with Next.js
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
       - name: Upload artifact

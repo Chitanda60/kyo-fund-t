@@ -22,7 +22,7 @@ import FundValuationTrendChart from '../FundValuationTrendChart';
 import FundIntradayChart from '../FundIntradayChart';
 import FundDailyEarnings from '../FundDailyEarnings';
 import { ChevronIcon, SettingsIcon, StarIcon, SwitchIcon, TrashIcon, LinkIcon } from '../Icons';
-import { getTagThemeBadgeProps } from '../AddTagDialog';
+import { getTagThemeBadgeProps } from '../modals/tags/AddTagDialog';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

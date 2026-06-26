@@ -8,7 +8,7 @@ import { fetchMarketIndices } from '@/app/api/fund';
 import { ChevronRightIcon } from 'lucide-react';
 import { SettingsIcon } from './Icons';
 import { cn } from '@/lib/utils';
-import MarketSettingModal from './MarketSettingModal';
+import MarketSettingModal from './modals/settings/MarketSettingModal';
 import { storageStore } from '../stores';
 
 /** 迷你走势：只展示当日分时数据，不支持时不展示 */

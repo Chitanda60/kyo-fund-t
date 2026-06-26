@@ -26,7 +26,7 @@ import { Empty, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from '@
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import MobileFundCardDrawer from './MobileFundCardDrawer';
+import MobileFundCardDrawer from './modals/common/MobileFundCardDrawer';
 import FundCard from './FundCard';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';

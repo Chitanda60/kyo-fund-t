@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useMemo, useCallback, useTransition, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
-import SearchBar from '../components/SearchBar';
-import NavLayout from '../components/NavLayout';
+import SearchBar from './SearchBar';
+import NavLayout from './NavLayout';
 import Image from 'next/image';
 
 import { createAvatar } from '@dicebear/core';
@@ -16,12 +16,12 @@ import { isArray, isBoolean, isFunction, isNumber, isObject, isPlainObject, isSt
 import { v4 as uuidv4 } from 'uuid';
 import { toast as sonnerToast } from 'sonner';
 
-import Announcement from '../components/Announcement';
-import { CloseIcon, MoonIcon, SunIcon } from '../components/Icons';
-import UserMenu from '../components/UserMenu';
-import RefreshButton from '../components/RefreshButton';
-const UpdateChecker = dynamic(() => import('../components/UpdateChecker'), { ssr: false });
-import MarketIndexAccordion from '../components/MarketIndexAccordion';
+import Announcement from './Announcement';
+import { CloseIcon, MoonIcon, SunIcon } from './Icons';
+import UserMenu from './UserMenu';
+import RefreshButton from './RefreshButton';
+const UpdateChecker = dynamic(() => import('./UpdateChecker'), { ssr: false });
+import MarketIndexAccordion from './MarketIndexAccordion';
 import githubImg from '../assets/github.svg';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getAllValuationSeries } from '../lib/valuationTimeseries';
@@ -46,7 +46,7 @@ import {
   useModalStore,
   useSettingsStore
 } from '../stores';
-import ModalsLayer from '../components/ModalsLayer';
+import ModalsLayer from './ModalsLayer';
 
 import {
   DEFAULT_SORT_RULES,

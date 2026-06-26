@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { isArray, isNumber } from 'lodash';
-import FundDailyEarningsDetailModal from './FundDailyEarningsDetailModal';
+import FundDailyEarningsDetailModal from './modals/fund-detail/FundDailyEarningsDetailModal';
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { formatMoney } from '@/lib/utils';
 

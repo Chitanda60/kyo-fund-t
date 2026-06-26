@@ -23,10 +23,10 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { isArray, isFunction, isObject, isString, throttle } from 'lodash';
 import { Sparkles } from 'lucide-react';
-import MobileFundCardDrawer from './MobileFundCardDrawer';
-import MobileSettingModal from './MobileSettingModal';
-import MoveGroupModal from './MoveGroupModal';
-import SuccessModal from './SuccessModal';
+import MobileFundCardDrawer from './modals/common/MobileFundCardDrawer';
+import MobileSettingModal from './modals/settings/MobileSettingModal';
+import MoveGroupModal from './modals/group/MoveGroupModal';
+import SuccessModal from './modals/common/SuccessModal';
 import {
   ArrowUpToLineIcon,
   CloseIcon,
@@ -48,7 +48,7 @@ import {
 import { storageStore } from '../stores';
 import { asyncPool } from '@/app/lib/asyncHelper';
 import { Badge } from '@/components/ui/badge';
-import { getTagThemeBadgeProps } from '@/app/components/AddTagDialog';
+import { getTagThemeBadgeProps } from '@/app/components/modals/tags/AddTagDialog';
 import { cn } from '@/lib/utils';
 import DataSourceAccuracyBadge from './DataSourceAccuracyBadge';
 import { useDataSourceAccuracyLabels } from '@/app/hooks/useDataSourceAccuracyLabels';

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from './modals/common/ConfirmModal';
 import { HelpCircle } from 'lucide-react';
 import { CalendarIcon, LoginIcon, LogoutIcon, SettingsIcon, UserIcon, ListIcon } from './Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';

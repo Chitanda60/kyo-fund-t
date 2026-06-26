@@ -43,7 +43,7 @@ real-time-fund/
 │   │   ├── tags/                      # Fund tag state/actions
 │   │   └── search/                    # Search box state/actions
 │   ├── stores/                        # Zustand stores: storage, modal, user, settings
-│   ├── components/                    # App-specific components/modals/tables/charts
+│   ├── components/                    # App-specific components/tables/charts; modals under components/modals/<category>/
 │   ├── hooks/                         # App hooks: refresh, sync, scan import, calculations
 │   ├── lib/                           # Utilities: Supabase, query client, OCR, helpers, snapshots
 │   ├── styles/                        # Split global CSS: tokens/base/layout/components
@@ -126,14 +126,15 @@ All dialogs/drawers/modals follow the central modal architecture.
 3. **`AppShell` must not subscribe to modal state** — use `useModalStore.getState()` inside handlers and pass data/functions through `modalCbRef`.
 4. **Callbacks/data cross the boundary through `callbacksRef`** — add page-level functions/data to `modalCbRef.current`, then consume as `cb.current.xxx` in `ModalsLayer`.
 5. **Low-frequency modals may be dynamic** — many modal components are loaded with `dynamic(() => import(...), { ssr: false })`.
+   - **Modal files live under `app/components/modals/<category>/`** (`trading`, `group`, `scan`, `tags`, `settings`, `fund-detail`, `common`). `ModalsLayer.jsx` stays at `app/components/ModalsLayer.jsx` (it is the render layer, not a modal). Import a modal as `./modals/<category>/<Name>` from `ModalsLayer`, or `@/app/components/modals/<category>/<Name>` elsewhere.
 6. **Close/setter compatibility stays inside ModalsLayer** — close handlers should use `useModalStore.setState` / `getState`, not page `useState`.
 7. **Error isolation** — `ModalsLayer` is wrapped in `ClientErrorBoundary`; `modalErrorResetKey` can reset after modal render failures.
 
 Quick add-modal flow:
 
 1. Add state/default shape in `modalStore.js`.
-2. Create or update the modal component.
-3. Render it in `ModalsLayer.jsx`.
+2. Create or update the modal component under `app/components/modals/<category>/`.
+3. Render it in `ModalsLayer.jsx` (import from `./modals/<category>/<Name>`).
 4. If page-level callbacks/data are needed, register them in `modalCbRef.current` in `app/components/AppShell.jsx`.
 
 ## STORAGE RULES

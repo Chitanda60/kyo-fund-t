@@ -6,7 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import packageJson from '../../package.json';
 import { fetchLatestRelease } from '../api/fund';
 import { UpdateIcon } from './Icons';
-import UpdatePromptModal from './UpdatePromptModal';
+import UpdatePromptModal from './modals/common/UpdatePromptModal';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function UpdateChecker({ onModalOpenChange }) {

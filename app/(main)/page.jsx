@@ -1,6 +1,6 @@
 'use client';
 
-import HomePageContent from './components/pages/HomePageContent';
+import HomePageContent from '@/app/components/pages/HomePageContent';
 
 // Route content for `/`. Shared chrome (navbar/announcement/market index), all state,
 // and ModalsLayer live in the persistent AppShell (app/layout.jsx); this page renders

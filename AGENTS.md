@@ -10,17 +10,17 @@ Real-time mutual fund valuation tracker (基估宝). Next.js 16 App Router, pure
 
 The preserve-UI refactor is applied: fund API logic is split under `app/services/fund/`, feature hooks live under `app/features/`, modal state is centralized in Zustand, and global CSS is split into `app/styles/*` with `app/globals.css` as the import barrel.
 
-The main `home / market / mine` tabs are **route-backed App Router pages** (`/`, `/market`, `/mine`). All former `app/page.jsx` orchestration (state, effects, handlers, `NavLayout`, the shared navbar/announcement/market-index chrome, and `ModalsLayer`) now lives in a persistent client shell `app/components/AppShell.jsx`, mounted once from `app/layout.jsx` so it survives route navigation (stores/refresh/sync stay alive; navigation fires no extra storage writes). Route pages are render-only and read data/actions from `AppRuntimeContext` (split state/actions). Portfolio group tabs (`全部 / 自选 / 汇总 / custom groups`) remain internal home-page state (`currentTab` in AppShell), not routes. Desktop `/mine` redirects to `/` after viewport resolves non-mobile. `trailingSlash: true` is set so GitHub Pages deep links resolve per-route `index.html`.
+The main `home / market / mine` tabs are **route-backed App Router pages** (`/`, `/market`, `/mine`), with the route files grouped under the `app/(main)/` route group (the parenthesized folder organizes the route files without changing the URLs; `layout.jsx` and `global-error.jsx` stay at `app/`). All former `app/page.jsx` orchestration (state, effects, handlers, `NavLayout`, the shared navbar/announcement/market-index chrome, and `ModalsLayer`) now lives in a persistent client shell `app/components/AppShell.jsx`, mounted once from `app/layout.jsx` so it survives route navigation (stores/refresh/sync stay alive; navigation fires no extra storage writes). Route pages are render-only and read data/actions from `AppRuntimeContext` (split state/actions). Portfolio group tabs (`全部 / 自选 / 汇总 / custom groups`) remain internal home-page state (`currentTab` in AppShell), not routes. Desktop `/mine` redirects to `/` after viewport resolves non-mobile. `trailingSlash: true` is set so GitHub Pages deep links resolve per-route `index.html`.
 
 ## STRUCTURE
 
 ```
 real-time-fund/
 ├── app/                               # Next.js App Router root
-│   ├── page.jsx                       # Route `/`: renders <HomePageContent /> only
-│   ├── market/page.jsx                # Route `/market`: renders <MarketPageContent />
-│   ├── mine/page.jsx                  # Route `/mine`: <MinePageContent />; desktop redirects to `/`
-│   ├── layout.jsx                     # Root layout: providers + mounts persistent <AppShell>
+│   ├── (main)/page.jsx                # Route `/`: renders <HomePageContent /> only  (route group — parens are not part of the URL)
+│   ├── (main)/market/page.jsx         # Route `/market`: renders <MarketPageContent />
+│   ├── (main)/mine/page.jsx           # Route `/mine`: <MinePageContent />; desktop redirects to `/`
+│   ├── layout.jsx                     # Root layout (must stay at app/): providers + mounts persistent <AppShell>
 │   ├── components/AppShell.jsx        # Persistent client shell: ALL former page.jsx state/effects/handlers, NavLayout, navbar chrome, ModalsLayer; provides AppRuntimeContext
 │   ├── components/pages/              # Render-only route content (Home/Market/Mine PageContent)
 │   ├── contexts/AppRuntimeContext.jsx # Split state/actions context consumed by route content

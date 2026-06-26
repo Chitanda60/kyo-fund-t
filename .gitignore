@@ -98,4 +98,5 @@ download/
 # npm project — never commit a yarn lockfile (breaks CI package-manager detection)
 yarn.lock
 
+# 独立子项目（有自己的 git 仓库，不纳入本仓库管理）
 kyo-fund-analysis/

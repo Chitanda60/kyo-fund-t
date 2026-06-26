@@ -5,7 +5,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui';
 import { isFunction } from 'lodash';
 
 import { cn } from '@/lib/utils';
-import { CloseIcon } from '@/app/components/Icons';
+import { CloseIcon } from '@/app/components/common/Icons';
 
 const DialogContext = React.createContext({ open: false });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TrashIcon } from '../../Icons';
+import { TrashIcon } from '../../common/Icons';
 
 export default function ConfirmModal({
   title,

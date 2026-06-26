@@ -6,7 +6,15 @@ import { createPortal } from 'react-dom';
 import ConfirmModal from '../common/ConfirmModal';
 import SuccessModal from '../common/SuccessModal';
 import SyncPersonalSettingsModal from './SyncPersonalSettingsModal';
-import { CloseIcon, DragIcon, RefreshIcon, ResetIcon, SettingsIcon, PinIcon, ArrowUpToLineIcon } from '../../Icons';
+import {
+  CloseIcon,
+  DragIcon,
+  RefreshIcon,
+  ResetIcon,
+  SettingsIcon,
+  PinIcon,
+  ArrowUpToLineIcon
+} from '../../common/Icons';
 
 /**
  * PC 表格个性化设置侧弹框

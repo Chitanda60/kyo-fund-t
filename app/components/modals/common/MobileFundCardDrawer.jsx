@@ -2,7 +2,7 @@
 
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import FundCard from '../../FundCard';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 
 /**
  * 移动端基金详情底部 Drawer 弹框

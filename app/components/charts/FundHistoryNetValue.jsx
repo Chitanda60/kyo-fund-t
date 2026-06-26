@@ -4,9 +4,9 @@ import { isArray } from 'lodash';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { fetchFundHistory } from '../api/fund';
-import * as qk from '../lib/query-keys';
-import FundHistoryNetValueModal from './modals/fund-detail/FundHistoryNetValueModal';
+import { fetchFundHistory } from '../../api/fund';
+import * as qk from '../../lib/query-keys';
+import FundHistoryNetValueModal from '../modals/fund-detail/FundHistoryNetValueModal';
 
 /**
  * 历史净值表格行：日期、单位净值、累计净值、日涨幅（按日期降序，涨红跌绿）

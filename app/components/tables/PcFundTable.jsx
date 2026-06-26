@@ -14,7 +14,7 @@ import {
 } from 'react';
 import { isArray, isFunction, isObject, isString, throttle, debounce } from 'lodash';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useModalStore } from '../stores';
+import { useModalStore } from '../../stores';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
@@ -22,9 +22,9 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Plus, Sparkles } from 'lucide-react';
-import ConfirmModal from './modals/common/ConfirmModal';
-import PcTableSettingModal from './modals/settings/PcTableSettingModal';
-import FundCard from './FundCard';
+import ConfirmModal from '../modals/common/ConfirmModal';
+import PcTableSettingModal from '../modals/settings/PcTableSettingModal';
+import FundCard from '../FundCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
@@ -37,21 +37,21 @@ import {
   LinkIcon,
   PencilIcon,
   CloseIcon
-} from './Icons';
-import { ConsecutiveTrendBadge } from './Common';
+} from '../common/Icons';
+import { ConsecutiveTrendBadge } from '../common/Common';
 import {
   fetchFundPeriodReturns,
   fetchRelatedSectorsBatch,
   fetchFundSecidsBatch,
   fetchEastmoneySectorQuotesBatch
 } from '@/app/api/fund';
-import { storageStore } from '../stores';
+import { storageStore } from '../../stores';
 import { asyncPool } from '@/app/lib/asyncHelper';
-import MoveGroupModal from './modals/group/MoveGroupModal';
+import MoveGroupModal from '../modals/group/MoveGroupModal';
 import { Badge } from '@/components/ui/badge';
 import { getTagThemeBadgeProps } from '@/app/components/modals/tags/AddTagDialog';
 import { cn } from '@/lib/utils';
-import DataSourceAccuracyBadge from './DataSourceAccuracyBadge';
+import DataSourceAccuracyBadge from '../fund/DataSourceAccuracyBadge';
 import { useDataSourceAccuracyLabels } from '@/app/hooks/useDataSourceAccuracyLabels';
 
 const EditModeContext = createContext({ isEditMode: false, selectedCodes: null, toggleSelected: null });

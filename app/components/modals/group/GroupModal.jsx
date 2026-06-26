@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldContent } from '@/components/ui/field';
-import { PlusIcon, CloseIcon } from '../../Icons';
+import { PlusIcon, CloseIcon } from '../../common/Icons';
 import { cn } from '@/lib/utils';
 
 const MAX_GROUP_NAME_LENGTH = 8;

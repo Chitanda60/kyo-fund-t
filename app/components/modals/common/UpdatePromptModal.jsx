@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UpdateIcon } from '../../Icons';
+import { UpdateIcon } from '../../common/Icons';
 
 export default function UpdatePromptModal({ updateContent, open, onClose, onRefresh }) {
   return (

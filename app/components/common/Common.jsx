@@ -8,8 +8,8 @@ import timezone from 'dayjs/plugin/timezone';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import zhifubaoImg from '../assets/zhifubao.jpg';
-import weixinImg from '../assets/weixin.jpg';
+import zhifubaoImg from '../../assets/zhifubao.jpg';
+import weixinImg from '../../assets/weixin.jpg';
 import { CalendarIcon, MinusIcon, PlusIcon, TrendUpIcon, TrendDownIcon } from './Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 

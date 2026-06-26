@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo, useCallback, useTransition, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
-import SearchBar from './SearchBar';
+import SearchBar from './search/SearchBar';
 import NavLayout from './NavLayout';
 import Image from 'next/image';
 
@@ -16,12 +16,12 @@ import { isArray, isBoolean, isFunction, isNumber, isObject, isPlainObject, isSt
 import { v4 as uuidv4 } from 'uuid';
 import { toast as sonnerToast } from 'sonner';
 
-import Announcement from './Announcement';
-import { CloseIcon, MoonIcon, SunIcon } from './Icons';
-import UserMenu from './UserMenu';
-import RefreshButton from './RefreshButton';
-const UpdateChecker = dynamic(() => import('./UpdateChecker'), { ssr: false });
-import MarketIndexAccordion from './MarketIndexAccordion';
+import Announcement from './system/Announcement';
+import { CloseIcon, MoonIcon, SunIcon } from './common/Icons';
+import UserMenu from './nav/UserMenu';
+import RefreshButton from './search/RefreshButton';
+const UpdateChecker = dynamic(() => import('./system/UpdateChecker'), { ssr: false });
+import MarketIndexAccordion from './market/MarketIndexAccordion';
 import githubImg from '../assets/github.svg';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getAllValuationSeries } from '../lib/valuationTimeseries';

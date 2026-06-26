@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { AlertTriangle } from 'lucide-react';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import weChatGroupImg from '../../../assets/weChatGroup.jpg';
 

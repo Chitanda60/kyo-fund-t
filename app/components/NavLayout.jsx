@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import PcSideNav from './PcSideNav';
-import MobileBottomNav from './MobileBottomNav';
+import PcSideNav from './nav/PcSideNav';
+import MobileBottomNav from './nav/MobileBottomNav';
 
 export default function NavLayout({
   children,

@@ -1,5 +1,5 @@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function TutorialDrawer({ open, onOpenChange }) {

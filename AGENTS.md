@@ -43,7 +43,7 @@ real-time-fund/
 │   │   ├── tags/                      # Fund tag state/actions
 │   │   └── search/                    # Search box state/actions
 │   ├── stores/                        # Zustand stores: storage, modal, user, settings
-│   ├── components/                    # App-specific components/tables/charts; modals under components/modals/<category>/
+│   ├── components/                    # Core shell at root (AppShell/ModalsLayer/NavLayout); rest grouped into subfolders (see below)
 │   ├── hooks/                         # App hooks: refresh, sync, scan import, calculations
 │   ├── lib/                           # Utilities: Supabase, query client, OCR, helpers, snapshots
 │   ├── styles/                        # Split global CSS: tokens/base/layout/components
@@ -64,6 +64,24 @@ real-time-fund/
 ├── env.example                        # NEXT_PUBLIC_* environment template
 └── package.json                       # Node >= 20.9.0, npm scripts, deps
 ```
+
+### `app/components/` layout
+
+Only the core shell stays at the root of `app/components/`: `AppShell.jsx`, `ModalsLayer.jsx`, `NavLayout.jsx`. Everything else is grouped into subfolders:
+
+- `modals/<category>/` — all dialogs/drawers/modals (`trading`, `group`, `scan`, `tags`, `settings`, `fund-detail`, `common`)
+- `tables/` — `PcFundTable`, `MobileFundTable`, `FundListView`
+- `charts/` — `FundTrendChart`, `FundValuationTrendChart`, `FundIntradayChart`, `FundHistoryNetValue`
+- `fund/` — fund display bits (`FundDailyEarnings`, `FundDataSourceSelector`, `DataSourceAccuracyBadge`, `GroupAccountSummaryCard`, `GroupSummary`, `SummaryTabContent`, `EmptyStateCard`)
+- `nav/` — `MobileBottomNav`, `PcSideNav`, `UserMenu`
+- `market/` — `MarketTab`, `MarketIndexAccordion`, `MineTab`
+- `search/` — `SearchBar`, `SearchFund`, `ScanButton`, `RefreshButton`
+- `system/` — side-effect/infra (`ClientErrorBoundary`, `GlobalClientErrorHandler`, `AnalyticsGate`, `PwaRegister`, `KeepScreenAwake`, `ThemeColorSync`, `UpdateChecker`, `Announcement`)
+- `common/` — shared primitives (`Common`, `Icons`, `FitText`)
+- `pages/` — route content components (`HomePageContent`, `MarketPageContent`, `MinePageContent`, `MyEarningsCalendarPage`)
+- `FundCard/` — the fund card and its parts
+
+Paths cited in the tables below may use the pre-reorg flat location; resolve a component by basename under these subfolders.
 
 ## WHERE TO LOOK
 

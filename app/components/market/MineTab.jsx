@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ChevronRight, QrCode } from 'lucide-react';
-import { LoginIcon } from './Icons';
+import { LoginIcon } from '../common/Icons';
 
 export default function MineTab({
   visible = true,

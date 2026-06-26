@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 export default function SelectFundSingleModal({

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import { useStorageStore } from '../../../stores/storageStore';
 import { useModalStore } from '../../../stores';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';

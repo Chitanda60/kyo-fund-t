@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { storageStore } from '../stores';
+import { storageStore } from '../../stores';
 
 const ANNOUNCEMENT_KEY = 'hasClosedAnnouncement_v2.3.1';
 

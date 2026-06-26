@@ -5,7 +5,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import PcFundTable from './PcFundTable';
 import MobileFundTable from './MobileFundTable';
-import FundCard from './FundCard';
+import FundCard from '../FundCard';
 
 const FundListView = React.memo(function FundListView({
   viewMode,

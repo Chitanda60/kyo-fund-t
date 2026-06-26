@@ -15,7 +15,7 @@ import {
 import ReactDOM from 'react-dom';
 import { toast as sonnerToast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useModalStore } from '../stores';
+import { useModalStore } from '../../stores';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
@@ -23,10 +23,10 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { isArray, isFunction, isObject, isString, throttle } from 'lodash';
 import { Sparkles } from 'lucide-react';
-import MobileFundCardDrawer from './modals/common/MobileFundCardDrawer';
-import MobileSettingModal from './modals/settings/MobileSettingModal';
-import MoveGroupModal from './modals/group/MoveGroupModal';
-import SuccessModal from './modals/common/SuccessModal';
+import MobileFundCardDrawer from '../modals/common/MobileFundCardDrawer';
+import MobileSettingModal from '../modals/settings/MobileSettingModal';
+import MoveGroupModal from '../modals/group/MoveGroupModal';
+import SuccessModal from '../modals/common/SuccessModal';
 import {
   ArrowUpToLineIcon,
   CloseIcon,
@@ -37,20 +37,20 @@ import {
   SettingsIcon,
   StarIcon,
   TrashIcon
-} from './Icons';
-import { ConsecutiveTrendBadge } from './Common';
+} from '../common/Icons';
+import { ConsecutiveTrendBadge } from '../common/Common';
 import {
   fetchFundPeriodReturns,
   fetchRelatedSectorsBatch,
   fetchFundSecidsBatch,
   fetchEastmoneySectorQuotesBatch
 } from '@/app/api/fund';
-import { storageStore } from '../stores';
+import { storageStore } from '../../stores';
 import { asyncPool } from '@/app/lib/asyncHelper';
 import { Badge } from '@/components/ui/badge';
 import { getTagThemeBadgeProps } from '@/app/components/modals/tags/AddTagDialog';
 import { cn } from '@/lib/utils';
-import DataSourceAccuracyBadge from './DataSourceAccuracyBadge';
+import DataSourceAccuracyBadge from '../fund/DataSourceAccuracyBadge';
 import { useDataSourceAccuracyLabels } from '@/app/hooks/useDataSourceAccuracyLabels';
 
 const EDIT_MOVE_TO_FRONT_COL = 'editMoveToFront';

@@ -16,12 +16,12 @@ import { cn, formatMoney } from '@/lib/utils';
 import { useStorageStore, storageStore } from '@/app/stores';
 import { fetchFundHoldings, fetchFundData } from '@/app/api/fund';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
-import { Stat, ConsecutiveTrendBadge } from '../Common';
-import FundTrendChart from '../FundTrendChart';
-import FundValuationTrendChart from '../FundValuationTrendChart';
-import FundIntradayChart from '../FundIntradayChart';
-import FundDailyEarnings from '../FundDailyEarnings';
-import { ChevronIcon, SettingsIcon, StarIcon, SwitchIcon, TrashIcon, LinkIcon } from '../Icons';
+import { Stat, ConsecutiveTrendBadge } from '../common/Common';
+import FundTrendChart from '../charts/FundTrendChart';
+import FundValuationTrendChart from '../charts/FundValuationTrendChart';
+import FundIntradayChart from '../charts/FundIntradayChart';
+import FundDailyEarnings from '../fund/FundDailyEarnings';
+import { ChevronIcon, SettingsIcon, StarIcon, SwitchIcon, TrashIcon, LinkIcon } from '../common/Icons';
 import { getTagThemeBadgeProps } from '../modals/tags/AddTagDialog';
 
 dayjs.extend(utc);

@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { Dialog, DialogContent, DialogTitle } from '../../../../components/ui/dialog';
 import ConfirmModal from '../common/ConfirmModal';
-import { DragIcon, PlusIcon, SettingsIcon, TrashIcon } from '../../Icons';
+import { DragIcon, PlusIcon, SettingsIcon, TrashIcon } from '../../common/Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const MAX_GROUP_NAME_LENGTH = 8;

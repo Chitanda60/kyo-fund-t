@@ -9,7 +9,7 @@ import { restrictToParentElement } from '@dnd-kit/modifiers';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
-import { CloseIcon, MinusIcon, ResetIcon, SettingsIcon } from '../../Icons';
+import { CloseIcon, MinusIcon, ResetIcon, SettingsIcon } from '../../common/Icons';
 import ConfirmModal from '../common/ConfirmModal';
 import { cn } from '@/lib/utils';
 

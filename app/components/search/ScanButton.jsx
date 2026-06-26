@@ -1,5 +1,5 @@
 import React from 'react';
-import { CameraIcon } from './Icons';
+import { CameraIcon } from '../common/Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function ScanButton({ onClick, disabled }) {

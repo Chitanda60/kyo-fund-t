@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { QrCode } from 'lucide-react';
-import { CloseIcon, SettingsIcon } from '../../Icons';
+import { CloseIcon, SettingsIcon } from '../../common/Icons';
 import { submitFeedback } from '../../../api/fund';
 
 export default function FeedbackModal({ onClose, user, onOpenWeChat }) {

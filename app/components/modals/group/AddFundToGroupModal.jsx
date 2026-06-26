@@ -3,7 +3,7 @@ import { isArray, isObject } from 'lodash';
 
 import { useState, useMemo } from 'react';
 import { Search, Info } from 'lucide-react';
-import { CloseIcon, PlusIcon } from '../../Icons';
+import { CloseIcon, PlusIcon } from '../../common/Icons';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { getTagThemeBadgeProps } from '../tags/AddTagDialog';

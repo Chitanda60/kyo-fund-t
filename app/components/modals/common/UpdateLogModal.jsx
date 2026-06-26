@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import dayjs from 'dayjs';
 import { withRetry } from '@/app/lib/asyncHelper';
 

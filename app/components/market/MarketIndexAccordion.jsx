@@ -6,10 +6,10 @@ import { useEffect, useState, useRef } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { fetchMarketIndices } from '@/app/api/fund';
 import { ChevronRightIcon } from 'lucide-react';
-import { SettingsIcon } from './Icons';
+import { SettingsIcon } from '../common/Icons';
 import { cn } from '@/lib/utils';
-import MarketSettingModal from './modals/settings/MarketSettingModal';
-import { storageStore } from '../stores';
+import MarketSettingModal from '../modals/settings/MarketSettingModal';
+import { storageStore } from '../../stores';
 
 /** 迷你走势：只展示当日分时数据，不支持时不展示 */
 function MiniTrendLine({ changePercent, code, className }) {

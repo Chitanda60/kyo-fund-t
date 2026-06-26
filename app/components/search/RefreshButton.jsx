@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RefreshIcon } from './Icons';
-import { useModalStore } from '../stores';
+import { RefreshIcon } from '../common/Icons';
+import { useModalStore } from '../../stores';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function RefreshButton({ refreshCycleStartRef, refreshMs, manualRefresh, refreshing, fundsLength }) {

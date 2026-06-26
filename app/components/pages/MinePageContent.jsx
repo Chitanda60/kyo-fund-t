@@ -2,7 +2,7 @@
 
 import dayjs from 'dayjs';
 import { toast as sonnerToast } from 'sonner';
-import MineTab from '@/app/components/MineTab';
+import MineTab from '@/app/components/market/MineTab';
 import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 
 // Render-only content for the "mine" main tab.

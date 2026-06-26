@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import ConfirmModal from '../common/ConfirmModal';
-import { CloseIcon, RefreshIcon } from '../../Icons';
+import { CloseIcon, RefreshIcon } from '../../common/Icons';
 import { cn } from '@/lib/utils';
 import AddTagDialog from './AddTagDialog';
 import EditTagDialog from './EditTagDialog';

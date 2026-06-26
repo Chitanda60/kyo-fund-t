@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CloseIcon } from '../../Icons';
-import { DonateTabs } from '../../Common';
+import { CloseIcon } from '../../common/Icons';
+import { DonateTabs } from '../../common/Common';
 
 export default function DonateModal({ onClose }) {
   return (

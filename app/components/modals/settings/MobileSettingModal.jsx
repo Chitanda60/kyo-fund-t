@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import ConfirmModal from '../common/ConfirmModal';
 import SuccessModal from '../common/SuccessModal';
 import SyncPersonalSettingsModal from './SyncPersonalSettingsModal';
-import { CloseIcon, DragIcon, RefreshIcon, ResetIcon, SettingsIcon, ArrowUpToLineIcon } from '../../Icons';
+import { CloseIcon, DragIcon, RefreshIcon, ResetIcon, SettingsIcon, ArrowUpToLineIcon } from '../../common/Icons';
 
 /**
  * 移动端表格个性化设置弹框（底部抽屉，基于 Drawer 组件）

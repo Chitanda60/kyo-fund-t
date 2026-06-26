@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import ConfirmModal from '../common/ConfirmModal';
-import { ResetIcon, SettingsIcon } from '../../Icons';
+import { ResetIcon, SettingsIcon } from '../../common/Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function SettingsModal({

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { CloseIcon, RefreshIcon } from '../../Icons';
+import { CloseIcon, RefreshIcon } from '../../common/Icons';
 import { Badge } from '@/components/ui/badge';
 import { TAG_THEME_OPTIONS } from '@/app/constants';
 import { cn } from '@/lib/utils';

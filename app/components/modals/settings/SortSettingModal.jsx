@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { useStorageStore, DEFAULT_SORT_RULES } from '@/app/stores';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CloseIcon, DragIcon, ResetIcon, SettingsIcon, ArrowUpToLineIcon } from '../../Icons';
+import { CloseIcon, DragIcon, ResetIcon, SettingsIcon, ArrowUpToLineIcon } from '../../common/Icons';
 import ConfirmModal from '../common/ConfirmModal';
 
 function SortSettingReorderItem({

@@ -5,7 +5,7 @@ import { AlertTriangleIcon, RotateCcwIcon } from 'lucide-react';
 import { isError, isFunction, isString } from 'lodash';
 import { toast as sonnerToast } from 'sonner';
 
-import { useModalStore } from '../stores';
+import { useModalStore } from '../../stores';
 
 function getErrorMessage(error) {
   let msg = '未知运行错误';

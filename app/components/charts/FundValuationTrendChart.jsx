@@ -3,11 +3,11 @@ import { isArray, isNumber } from 'lodash';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchFundValuationTrend, fetchFundHistory } from '../api/fund';
-import * as qk from '../lib/query-keys';
-import { getChartAxisAvoidRects, getChartTooltipPosition } from '../lib/chartTooltipPosition';
+import { fetchFundValuationTrend, fetchFundHistory } from '../../api/fund';
+import * as qk from '../../lib/query-keys';
+import { getChartAxisAvoidRects, getChartTooltipPosition } from '../../lib/chartTooltipPosition';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronIcon } from './Icons';
+import { ChevronIcon } from '../common/Icons';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,7 +20,7 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured } from '../../lib/supabase';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 

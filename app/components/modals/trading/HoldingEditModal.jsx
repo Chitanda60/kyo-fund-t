@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { CloseIcon, SettingsIcon, SwitchIcon } from '../../Icons';
-import { DatePicker } from '../../Common';
+import { CloseIcon, SettingsIcon, SwitchIcon } from '../../common/Icons';
+import { DatePicker } from '../../common/Common';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 

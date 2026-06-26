@@ -39,13 +39,13 @@ import TutorialDrawer from './modals/common/TutorialDrawer';
 import UpdateLogModal from './modals/common/UpdateLogModal';
 import SortSettingModal from './modals/settings/SortSettingModal';
 import AddFundToGroupModal from './modals/group/AddFundToGroupModal';
-import FundDataSourceSelector from './FundDataSourceSelector';
+import FundDataSourceSelector from './fund/FundDataSourceSelector';
 import FundTagsEditDialog from './modals/tags/FundTagsEditDialog';
-import MyEarningsCalendarPage from './MyEarningsCalendarPage';
+import MyEarningsCalendarPage from './pages/MyEarningsCalendarPage';
 import { DEFAULT_FUND_TAG_THEME, DCA_SCOPE_GLOBAL } from '@/app/constants';
 import { migrateDcaPlansToScoped } from '../lib/fundHelpers';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import ClientErrorBoundary from './ClientErrorBoundary';
+import ClientErrorBoundary from './system/ClientErrorBoundary';
 
 /**
  * ModalsLayer — 将所有弹框渲染从 page.jsx 抽离到独立组件。

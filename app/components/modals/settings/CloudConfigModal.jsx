@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import ConfirmModal from '../common/ConfirmModal';
-import { CloseIcon, CloudIcon } from '../../Icons';
+import { CloseIcon, CloudIcon } from '../../common/Icons';
 
 export default function CloudConfigModal({ onConfirm, onCancel, type = 'empty' }) {
   const [pendingAction, setPendingAction] = useState(null); // 'local' | 'cloud' | null

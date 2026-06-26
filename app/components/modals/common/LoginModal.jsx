@@ -4,7 +4,7 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import Image from 'next/image';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { MailIcon } from '../../Icons';
+import { MailIcon } from '../../common/Icons';
 import githubImg from '../../../assets/github.svg';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
 

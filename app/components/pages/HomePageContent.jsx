@@ -8,12 +8,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { GridIcon, ListIcon, PlusIcon, SettingsIcon, SortIcon } from '@/app/components/Icons';
-import EmptyStateCard from '@/app/components/EmptyStateCard';
-import SummaryTabContent from '@/app/components/SummaryTabContent';
-import GroupSummary from '@/app/components/GroupSummary';
-import SearchFund from '@/app/components/SearchFund';
-import FundListView from '@/app/components/FundListView';
+import { GridIcon, ListIcon, PlusIcon, SettingsIcon, SortIcon } from '@/app/components/common/Icons';
+import EmptyStateCard from '@/app/components/fund/EmptyStateCard';
+import SummaryTabContent from '@/app/components/fund/SummaryTabContent';
+import GroupSummary from '@/app/components/fund/GroupSummary';
+import SearchFund from '@/app/components/search/SearchFund';
+import FundListView from '@/app/components/tables/FundListView';
 import { SUMMARY_TAB_ID } from '@/app/constants';
 import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 

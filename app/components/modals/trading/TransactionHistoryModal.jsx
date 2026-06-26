@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { CloseIcon } from '../../Icons';
+import { CloseIcon } from '../../common/Icons';
 import ConfirmModal from '../common/ConfirmModal';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';

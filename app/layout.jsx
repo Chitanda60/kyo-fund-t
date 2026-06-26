@@ -1,11 +1,11 @@
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
-import AnalyticsGate from './components/AnalyticsGate';
-import KeepScreenAwake from './components/KeepScreenAwake';
-import PwaRegister from './components/PwaRegister';
-import ThemeColorSync from './components/ThemeColorSync';
-import ClientErrorBoundary from './components/ClientErrorBoundary';
-import GlobalClientErrorHandler from './components/GlobalClientErrorHandler';
+import AnalyticsGate from './components/system/AnalyticsGate';
+import KeepScreenAwake from './components/system/KeepScreenAwake';
+import PwaRegister from './components/system/PwaRegister';
+import ThemeColorSync from './components/system/ThemeColorSync';
+import ClientErrorBoundary from './components/system/ClientErrorBoundary';
+import GlobalClientErrorHandler from './components/system/GlobalClientErrorHandler';
 import AppShell from './components/AppShell';
 import { QueryClientProviderWrapper } from './providers/query-client-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';

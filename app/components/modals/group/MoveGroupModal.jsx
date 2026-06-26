@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ConfirmModal from '../common/ConfirmModal';
-import { AlertTriangleIcon } from '../../Icons';
+import { AlertTriangleIcon } from '../../common/Icons';
 
 /**
  * 批量迁移分组弹框

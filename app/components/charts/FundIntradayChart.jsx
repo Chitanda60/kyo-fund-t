@@ -6,11 +6,11 @@ import { PhotoProvider, PhotoView } from 'react-photo-view';
 import 'react-photo-view/dist/react-photo-view.css';
 import { Line } from 'react-chartjs-2';
 import { isNumber } from 'lodash';
-import { SwitchIcon } from './Icons';
+import { SwitchIcon } from '../common/Icons';
 import { useQuery } from '@tanstack/react-query';
 import { ocrFundChart } from '@/app/lib/query-keys';
-import { useStorageStore } from '../stores';
-import { useIsMobile } from '../hooks/useIsMobile';
+import { useStorageStore } from '../../stores';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 

@@ -3,10 +3,10 @@ import { isString } from 'lodash';
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import packageJson from '../../package.json';
-import { fetchLatestRelease } from '../api/fund';
-import { UpdateIcon } from './Icons';
-import UpdatePromptModal from './modals/common/UpdatePromptModal';
+import packageJson from '../../../package.json';
+import { fetchLatestRelease } from '../../api/fund';
+import { UpdateIcon } from '../common/Icons';
+import UpdatePromptModal from '../modals/common/UpdatePromptModal';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function UpdateChecker({ onModalOpenChange }) {

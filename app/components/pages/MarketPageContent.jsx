@@ -1,6 +1,6 @@
 'use client';
 
-import MarketTab from '@/app/components/MarketTab';
+import MarketTab from '@/app/components/market/MarketTab';
 import { useAppRuntime } from '@/app/contexts/AppRuntimeContext';
 
 // Render-only content for the "market" main tab. Routed at /market, so it mounts

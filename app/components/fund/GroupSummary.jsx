@@ -3,8 +3,8 @@ import { isBoolean, isNumber, isObject } from 'lodash';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
-import { PinIcon, PinOffIcon, EyeIcon, EyeOffIcon, SwitchIcon } from './Icons';
-import FitText from './FitText';
+import { PinIcon, PinOffIcon, EyeIcon, EyeOffIcon, SwitchIcon } from '../common/Icons';
+import FitText from '../common/FitText';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { formatMoney } from '@/lib/utils';
 

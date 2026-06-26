@@ -6,7 +6,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 import { isString } from 'lodash';
 
 import { Toaster } from '@/components/ui/sonner';
-import { shouldSilenceClientError } from './components/ClientErrorBoundary';
+import { shouldSilenceClientError } from './components/system/ClientErrorBoundary';
 
 function getErrorMessage(error) {
   if (isString(error?.message) && error.message.trim()) return error.message;

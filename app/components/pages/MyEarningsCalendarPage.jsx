@@ -16,8 +16,8 @@ import { supabase, isSupabaseConfigured } from '@/app/lib/supabase';
 import { calculateYtdReturnRate, mergeAllScopedDailyEarnings, mergeAllHoldings } from '@/app/lib/dailyEarnings';
 import { storageStore, useUserStore, useStorageStore } from '@/app/stores';
 import { searchFunds } from '@/app/api/fund';
-import { CloseIcon } from './Icons';
-import FitText from './FitText';
+import { CloseIcon } from '../common/Icons';
+import FitText from '../common/FitText';
 
 dayjs.locale('zh-cn');
 

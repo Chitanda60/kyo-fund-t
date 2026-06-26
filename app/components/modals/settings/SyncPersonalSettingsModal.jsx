@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { CloseIcon, RefreshIcon } from '../../Icons';
+import { CloseIcon, RefreshIcon } from '../../common/Icons';
 
 export default function SyncPersonalSettingsModal({ open, onClose, options = [], sourceName = '当前', onConfirm }) {
   const [selected, setSelected] = useState(() => new Set());

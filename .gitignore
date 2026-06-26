@@ -97,3 +97,5 @@ cli/
 download/
 # npm project — never commit a yarn lockfile (breaks CI package-manager detection)
 yarn.lock
+
+kyo-fund-analysis/

@@ -1170,9 +1170,11 @@ export function useSyncManager({ showToast, refreshAllRef, setTempSeconds, setFu
 
         if (isPlainObject(cloudData.customSettings)) {
           try {
-            const currentCustomSettings = useStorageStore.getState().customSettings;
-            const merged = { ...(currentCustomSettings || {}), ...cloudData.customSettings };
+            const merged = { ...cloudData.customSettings };
             useStorageStore.getState().setCustomSettings(merged);
+            if (merged.localSortRules && isArray(merged.localSortRules)) {
+              useStorageStore.getState().setSortRules(merged.localSortRules);
+            }
             if (isString(merged.localSortDisplayMode) && SORT_DISPLAY_MODES.has(merged.localSortDisplayMode)) {
               useStorageStore.getState().setPcSortDisplayMode(merged.localSortDisplayMode);
               useStorageStore.getState().setMobileSortDisplayMode(merged.localSortDisplayMode);

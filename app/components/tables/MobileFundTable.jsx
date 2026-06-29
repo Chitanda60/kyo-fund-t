@@ -16,12 +16,12 @@ import ReactDOM from 'react-dom';
 import { toast as sonnerToast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useModalStore } from '../../stores';
-import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { isArray, isFunction, isObject, isString, throttle } from 'lodash';
+import { isArray, isFunction, isNumber, isObject, isString, throttle } from 'lodash';
 import { Sparkles } from 'lucide-react';
 import MobileFundCardDrawer from '../modals/common/MobileFundCardDrawer';
 import MobileSettingModal from '../modals/settings/MobileSettingModal';
@@ -48,6 +48,16 @@ import {
 import { storageStore } from '../../stores';
 import { asyncPool } from '@/app/lib/asyncHelper';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination';
 import { getTagThemeBadgeProps } from '@/app/components/modals/tags/AddTagDialog';
 import { cn } from '@/lib/utils';
 import DataSourceAccuracyBadge from '../fund/DataSourceAccuracyBadge';
@@ -2607,13 +2617,34 @@ const MobileFundTable = memo(function MobileFundTable({
     };
   }, [isEditMode, mobileColumnVisibility]);
 
+  // 分页状态：每页条数从 localStorage 恢复（本地 UI 设置，不参与云同步）
+  const [pagination, setPagination] = useState(() => {
+    let size = 20;
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = storageStore.getItem('fundTablePageSize');
+        if (stored && isNumber(stored) && stored > 0) size = stored;
+      }
+    } catch (e) {}
+    return { pageIndex: 0, pageSize: size };
+  });
+
+  // 切换分组 / 排序时回到第一页
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [currentTab, sortBy, sortOrder]);
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+    onPaginationChange: setPagination,
     state: {
       columnOrder: tableColumnOrder,
-      columnVisibility: tableColumnVisibility
+      columnVisibility: tableColumnVisibility,
+      pagination
     },
     onColumnOrderChange: (updater) => {
       if (isEditMode) return;
@@ -2996,6 +3027,111 @@ const MobileFundTable = memo(function MobileFundTable({
           <div className="table-row empty-row">
             <div className="table-cell" style={{ textAlign: 'center' }}>
               <span className="muted">暂无数据</span>
+            </div>
+          </div>
+        )}
+
+        {!onlyShowHeader && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderTop: '1px solid var(--border)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <span className="muted" style={{ fontSize: '13px' }}>
+                每页
+              </span>
+              <Input
+                key={table.getState().pagination.pageSize}
+                defaultValue={table.getState().pagination.pageSize}
+                type="number"
+                min={1}
+                className="w-[60px] h-8 text-[16PX] text-center px-2"
+                onBlur={(e) => {
+                  let val = parseInt(e.target.value, 10);
+                  if (isNaN(val) || val < 1) val = 20;
+                  e.target.value = val;
+                  if (val !== table.getState().pagination.pageSize) {
+                    table.setPageSize(val);
+                    if (typeof window !== 'undefined') {
+                      storageStore.setItem('fundTablePageSize', val);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
+              />
+              <span className="muted" style={{ fontSize: '13px' }}>
+                条
+              </span>
+            </div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (table.getCanPreviousPage()) {
+                          table.previousPage();
+                          if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className={!table.getCanPreviousPage() ? 'opacity-50 pointer-events-none' : ''}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: table.getPageCount() }, (_, i) => {
+                    const pageIndex = table.getState().pagination.pageIndex;
+                    if (i === 0 || i === table.getPageCount() - 1 || (i >= pageIndex - 1 && i <= pageIndex + 1)) {
+                      return (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pageIndex === i}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              table.setPageIndex(i);
+                              if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                          >
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    if (i === pageIndex - 2 || i === pageIndex + 2) {
+                      return (
+                        <PaginationItem key={i}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (table.getCanNextPage()) {
+                          table.nextPage();
+                          if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className={!table.getCanNextPage() ? 'opacity-50 pointer-events-none' : ''}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </div>
         )}

@@ -12,6 +12,7 @@ import {
   SUMMARY_SOURCE_GLOBAL,
   DEFAULT_FUND_TAG_THEME
 } from '@/app/constants';
+import { getPrevTradingDay, countTradingDaysBetween } from './tradingCalendar';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -160,11 +161,12 @@ export function migrateDcaPlansToScoped(raw) {
 }
 
 /**
- * 判断基金净值是否"已更新"（结合确认天数）。
+ * 判断基金净值是否"已更新"（结合确认天数与真实交易日历）。
  *
- * - confirmDays = 1（普通 A 股基金）：严格要求 jzrq === todayStr
- * - confirmDays >= 2（QDII 等跨境基金）：净值日期在 (confirmDays + 2) 个自然日内
- *   视为"已更新"，+2 用于覆盖周末（如周一查看周五出的净值，日历间隔 3 天）。
+ * - confirmDays <= 1（普通 A 股基金）：净值日期 >= 今天或之前最近的交易日
+ *   即视为已更新。例如周六查看周五净值 → 已更新；国庆长假查看节前净值 → 已更新。
+ * - confirmDays >= 2（QDII 等跨境基金）：净值日期与今天之间相隔的交易日数
+ *   <= confirmDays 即视为已更新。使用交易日而非自然日，精确覆盖周末与长假。
  *
  * @param {string} jzrq - 基金净值日期，格式 YYYY-MM-DD
  * @param {string} todayStr - 今天日期，格式 YYYY-MM-DD
@@ -174,9 +176,17 @@ export function migrateDcaPlansToScoped(raw) {
 export function isNavUpdated(jzrq, todayStr, confirmDays) {
   if (!isString(jzrq) || !jzrq) return false;
   if (jzrq === todayStr) return true;
+
   const days = Number(confirmDays) || 1;
-  if (days <= 1) return false;
-  // QDII 等延迟出净值的基金，允许净值日期落后 (confirmDays + 2) 个自然日
-  const diff = toTz(todayStr).diff(toTz(jzrq), 'day');
-  return diff > 0 && diff <= days + 2;
+
+  if (days <= 1) {
+    // A 股基金：净值日期 >= 上一个最近交易日即为已更新
+    const prevTD = getPrevTradingDay(toTz(todayStr));
+    if (!prevTD) return false;
+    return toTz(jzrq).startOf('day').isSameOrAfter(prevTD, 'day');
+  }
+
+  // QDII 等延迟基金：净值日期与今天之间的交易日数 <= confirmDays
+  const tradingDays = countTradingDaysBetween(jzrq, todayStr, toTz);
+  return tradingDays >= 0 && tradingDays <= days;
 }

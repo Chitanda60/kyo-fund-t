@@ -111,6 +111,7 @@ export function useRefreshManager({ scheduleDcaTrades, processPendingQueue, devi
         let earningsChanged = false;
 
         const isValidDateStr = (s) => isString(s) && /^\d{4}-\d{2}-\d{2}$/.test(s);
+        const refreshDateStr = dayjs().tz(TZ).format('YYYY-MM-DD');
         const addDays = (dateStr, days) => dayjs.tz(dateStr, TZ).add(days, 'day').format('YYYY-MM-DD');
         const subDays = (dateStr, days) => dayjs.tz(dateStr, TZ).subtract(days, 'day').format('YYYY-MM-DD');
         const calcEarningsFromNavs = (nav, prevNav, share) => (nav - prevNav) * share;
@@ -277,6 +278,17 @@ export function useRefreshManager({ scheduleDcaTrades, processPendingQueue, devi
             data.gztime = oldData.gztime;
             if (oldData.valuationSource) data.valuationSource = oldData.valuationSource;
             data.noValuation = false;
+          }
+
+          // T+2 等延迟确认基金：记录净值日期推进发生在哪一天，供当日收益口径切换使用。
+          const currentNavDate = isValidDateStr(data.jzrq) ? data.jzrq : null;
+          const previousNavDate = isValidDateStr(oldData?.jzrq) ? oldData.jzrq : null;
+          if (currentNavDate && previousNavDate && currentNavDate > previousNavDate) {
+            data.navUpdatedAt = refreshDateStr;
+          } else if (currentNavDate && previousNavDate === currentNavDate && oldData?.navUpdatedAt === refreshDateStr) {
+            data.navUpdatedAt = oldData.navUpdatedAt;
+          } else if (data.navUpdatedAt !== undefined) {
+            delete data.navUpdatedAt;
           }
 
           updated.push(data);

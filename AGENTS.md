@@ -247,12 +247,14 @@ From `env.example`:
 - The recorded upstream baseline commit is:
 
 ```text
-2e14d9e3a3617a228fa4c28305b3b5408a93a43e
-feat：分组下拉宽度调整
-2026-06-24 09:52:09 +0800
+be176765566d0e6f83b7614b5e0d7328087a633b
+feat：发布 2.3.3
+2026-06-28 23:27:17 +0800
 ```
 
 - The 2.3.1 range `ffaf4b0..2e14d9e` was fully ported on 2026-06-24/25 (see `doc/upstream-sync-2e14d9e-checklist.md` and `doc/upstream-sync.md`), including the home group-dropdown tab rendering + tab-overflow scroll buttons and the `.name-cell`/`.tabs-scroll-*` CSS merge into `app/styles/components.css`. The only remaining work is operational (not code): populate the Supabase `fund_best_source` / `fund_related` / `fund_topic` data so auto-source + recommended-tags return results (the RPCs are deployed + reachable).
+- The 2.3.3 range `2e14d9e..be17676` was ported on 2026-06-29 (see `doc/upstream-sync-be17676-checklist.md`): QDII data source 4 (explicit source `4` + `isQdiiFund`, tag-gated `storageStore` migration replacing the implicit source-1 Supabase fallback), table pagination, cloud sort-personalization apply fix, auto-source login guard, trading-day NAV-update logic, T+2 daily-profit basis (`navUpdatedAt`/`profitBasisDate`), PC chart tooltip opacity, group-dropdown scroll behavior, and the v2.3.3 release. Table pagination (Task 4) still needs in-browser verification of drag/reorder, cross-page batch select, and iOS Safari input zoom.
+- Safari input zoom: inputs used on mobile should have a computed font-size of at least 16px. When using Tailwind arbitrary sizes in CSS that passes through pxtorem, use `text-[16PX]` for small pagination/settings inputs that must not trigger iOS Safari zoom.
 - The original baseline `ffaf4b0` was verified by comparing 190 project files from the repo's first commit `be6cfa5` against `download/real-time-fund` (excluding AI/IDE/docs noise): `190/190` matching blobs.
 - Future upstream update workflow: compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, then port relevant changes into the current refactored architecture.
 - Do not directly copy upstream files over current files; current project has route-backed tabs, `AppShell`, split fund services, feature hooks, unified `storageStore`, and split CSS.

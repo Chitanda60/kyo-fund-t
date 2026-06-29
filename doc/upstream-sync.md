@@ -11,9 +11,9 @@ download/real-time-fund
 Current baseline:
 
 ```text
-2e14d9e3a3617a228fa4c28305b3b5408a93a43e
-feat：分组下拉宽度调整
-2026-06-24 09:52:09 +0800
+be176765566d0e6f83b7614b5e0d7328087a633b
+feat：发布 2.3.3
+2026-06-28 23:27:17 +0800
 ```
 
 The baseline is also marked in the upstream checkout by the local git tag
@@ -44,6 +44,16 @@ build prerenders all routes, 0 console errors, the in-app 2.3.1 announcement ren
 `doc/supabase.sql` §4) and verified reachable (HTTP 200, empty results). To make
 auto-source / recommended-tags actually do something, populate `fund_best_source`
 and the `fund_related`/`fund_topic` tables. Until then the features degrade safely.
+
+The 2.3.3 sync (`2e14d9e..be17676`) was ported into the refactored architecture on
+2026-06-29 (see `doc/upstream-sync-be17676-checklist.md`). Ported: QDII data source 4
+(explicit source `4` + `isQdiiFund`, replacing the implicit source-1 Supabase fallback,
+with a tag-gated `storageStore` migration for legacy QDII funds), table pagination,
+cloud sort-personalization apply fix, auto-source login guard, trading-day NAV-update
+logic, T+2 daily-profit basis (`navUpdatedAt` / `profitBasisDate`), PC tooltip opacity,
+group-dropdown scroll behavior, v2.3.3 release announcement and package version. Lint
+0 errors, build prerenders all routes. Table pagination (Task 4) still needs in-browser
+verification of drag/reorder, cross-page batch select, and iOS Safari input zoom.
 
 The previous baseline was `ffaf4b0` (the current repository's first commit):
 

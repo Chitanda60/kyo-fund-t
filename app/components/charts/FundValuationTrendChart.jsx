@@ -62,7 +62,8 @@ const SOURCES = {
   actual: '本基金',
   fundgz: '数据源 1',
   sina_ds2: '数据源 2',
-  sina_ds3: '数据源 3'
+  sina_ds3: '数据源 3',
+  supabase_qdii: '数据源 4'
 };
 
 export default function FundValuationTrendChart({
@@ -142,7 +143,8 @@ export default function FundValuationTrendChart({
       actual: new Map(),
       fundgz: new Map(),
       sina_ds2: new Map(),
-      sina_ds3: new Map()
+      sina_ds3: new Map(),
+      supabase_qdii: new Map()
     };
 
     rawData.forEach((row) => {

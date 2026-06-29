@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { isArray, isBoolean, isEqual, isFunction, isObject, isString } from 'lodash';
+import { isArray, isBoolean, isEqual, isFunction, isObject, isPlainObject, isString } from 'lodash';
 import { getFundCodesFromTagRecord } from '@/app/lib/fundHelpers';
 import { DEFAULT_SORT_RULES, SORT_DISPLAY_MODES } from '@/app/constants';
 
@@ -88,14 +88,41 @@ export const normalizePendingTrades = (value) => {
   return next;
 };
 
+/**
+ * 迁移遗留 QDII 基金：曾以数据源 1 + valuationSource 'supabase_qdii' 存储的基金，
+ * 升级为显式数据源 4。仅覆盖已被解析/打标签的基金；未打标签的 QDII 走 auto-source
+ * 或数据源选择器恢复（不在同步规整器内做异步 Supabase 探测）。
+ */
+const normalizeFundsForStorage = (value) => {
+  const list = isString(value) ? JSON.parse(value || '[]') : value;
+  if (!isArray(list)) return [];
+  return list.map((fund) => {
+    if (!isPlainObject(fund)) return fund;
+    const dataSource = Number(fund.dataSource);
+    if (fund.valuationSource === 'supabase_qdii' && (!Number.isFinite(dataSource) || dataSource === 1)) {
+      return { ...fund, dataSource: 4 };
+    }
+    return fund;
+  });
+};
+
 const normalizeStorageValue = (key, value) => {
-  if (key !== 'pendingTrades') return value;
-  try {
-    const parsed = isString(value) ? JSON.parse(value) : value;
-    return JSON.stringify(normalizePendingTrades(parsed));
-  } catch {
-    return value;
+  if (key === 'pendingTrades') {
+    try {
+      const parsed = isString(value) ? JSON.parse(value) : value;
+      return JSON.stringify(normalizePendingTrades(parsed));
+    } catch {
+      return value;
+    }
   }
+  if (key === 'funds') {
+    try {
+      return JSON.stringify(normalizeFundsForStorage(value));
+    } catch {
+      return value;
+    }
+  }
+  return value;
 };
 
 /**
@@ -138,7 +165,14 @@ export const useStorageStore = create((set, get) => ({
   initFunds: () => {
     if (typeof window !== 'undefined') {
       const saved = get().getItem('funds', []);
-      set({ funds: isArray(saved) ? saved : [] });
+      const list = isArray(saved) ? saved : [];
+      const migrated = normalizeFundsForStorage(list);
+      set({ funds: migrated });
+      // 遗留 QDII 基金 dataSource 1 -> 4 迁移：若加载时发生变更则持久化
+      // （dataSource 属于 getFundCodesSignature，首次迁移会触发一次预期的云同步）
+      if (!isEqual(migrated, list)) {
+        get().setItem('funds', JSON.stringify(migrated));
+      }
     }
   },
 

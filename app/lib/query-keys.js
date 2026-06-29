@@ -45,3 +45,6 @@ export const bestValuationSource = (code, jzrq, actualZzl) => [
 
 /** @param {string} fundCode */
 export const fundBestSource = (fundCode) => ['fundBestSource', String(fundCode).trim()];
+
+/** @param {string} fundCode */
+export const isQdiiFund = (fundCode) => ['isQdiiFund', String(fundCode).trim()];

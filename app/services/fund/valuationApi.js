@@ -172,6 +172,7 @@ function normalizeValuationDataSource(dataSource) {
   const n = Number(dataSource);
   if (n === 2) return 2;
   if (n === 3) return 3;
+  if (n === 4) return 4;
   return 1;
 }
 
@@ -244,7 +245,7 @@ function fetchSinaEstimateNetworthResponse(code) {
  */
 
 /**
- * 从 Supabase gs_qdii 表获取 QDII 基金的估值数据（作为天天基金数据源 1 的 fallback）
+ * 从 Supabase gs_qdii 表获取 QDII 基金的估值数据（数据源 4）
  */
 export const fetchQdiiValuationFromSupabase = async (code) => {
   if (!code || !isSupabaseConfigured) return null;
@@ -271,6 +272,34 @@ export const fetchQdiiValuationFromSupabase = async (code) => {
 };
 
 /**
+ * 检查指定基金编码是否存在于 Supabase gs_qdii 表中
+ * 结果通过 TanStack Query 缓存 12 小时。
+ * @param {string} code - 基金编码
+ * @returns {Promise<boolean>}
+ */
+export const isQdiiFund = async (code) => {
+  if (!code || !isSupabaseConfigured) return false;
+  const normalized = String(code).trim();
+  if (!normalized) return false;
+
+  const qc = getQueryClient();
+  try {
+    return await qc.fetchQuery({
+      queryKey: qk.isQdiiFund(normalized),
+      queryFn: async () => {
+        const { data, error } = await withRetry(() =>
+          supabase.from('gs_qdii').select('fund_code').eq('fund_code', normalized).maybeSingle()
+        );
+        return !error && data != null;
+      },
+      staleTime: 12 * 60 * 60 * 1000
+    });
+  } catch {
+    return false;
+  }
+};
+
+/**
  * 通过 Edge Function best-valuation-source 查询指定日期各数据源估值，
  * 与实际涨跌幅比对，返回最准确的数据源编号。
  *
@@ -280,7 +309,7 @@ export const fetchQdiiValuationFromSupabase = async (code) => {
  * @returns {Promise<{ bestSource: number|null, isYesterdayAccuracy: boolean, isTodayAccuracy: boolean, diffs: Object<string,number>, diff?: number }|null>}
  */
 // 数据源名称 -> 数值 id（与 FundDataSourceSelector 等使用的 id 对齐）。
-const SOURCE_NAME_TO_ID = { fundgz: 1, sina_ds2: 2, sina_ds3: 3 };
+const SOURCE_NAME_TO_ID = { fundgz: 1, sina_ds2: 2, sina_ds3: 3, supabase_qdii: 4 };
 
 export async function fetchBestValuationSource(code, jzrq, actualZzl) {
   if (!isSupabaseConfigured || !supabase?.functions?.invoke) return null;
@@ -392,17 +421,29 @@ export async function fetchFundsBestSources(fundCodes) {
 /**
  * 按基金编码与数据源类型获取估值（天天基金 fundgz 或新浪估算曲线末点）。
  * @param {string} code - 基金编码
- * @param {number | string} [dataSource=1] - 1 天天基金；2、3 新浪估算不同口径
+ * @param {number | string} [dataSource=1] - 1 天天基金；2、3 新浪估算不同口径；4 Supabase QDII
  * @returns {Promise<UnifiedFundValuation>}
  */
 export async function fetchFundValuationBySource(code, dataSource = 1) {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    throw new Error('无浏览器环境');
-  }
   const c = code != null ? String(code).trim() : '';
   if (!c) throw new Error('基金编码无效');
 
   const ds = normalizeValuationDataSource(dataSource);
+
+  // 数据源 4：Supabase gs_qdii 表
+  if (ds === 4) {
+    const qdii = await fetchQdiiValuationFromSupabase(c);
+    if (!qdii) throw new Error('gs_qdii no data');
+    return {
+      code: c,
+      ...qdii,
+      gsz: null // 由 fetchFundData 等调用方配合 dwjz 计算
+    };
+  }
+
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    throw new Error('无浏览器环境');
+  }
 
   if (ds === 2 || ds === 3) {
     fundDebugLog('fetchFundValuationBySource sina', { code: c, dataSource: ds });
@@ -464,20 +505,6 @@ export async function fetchFundValuationBySource(code, dataSource = 1) {
     const safeResolve = settleOnce(resolve);
     const safeReject = settleOnce(reject);
 
-    const trySupabaseFallback = async (originalError) => {
-      fundDebugLog('fetchFundValuationBySource try supabase fallback', { code: c });
-      const qdii = await fetchQdiiValuationFromSupabase(c);
-      if (qdii) {
-        safeResolve({
-          code: c,
-          ...qdii,
-          gsz: null // 由 fetchFundData 等调用方配合 dwjz 计算
-        });
-      } else {
-        safeReject(originalError || new Error('gz failed and no qdii fallback'));
-      }
-    };
-
     const scriptGz = document.createElement('script');
     scriptGz.src = gzUrl;
     scriptGz.async = true;
@@ -495,9 +522,9 @@ export async function fetchFundValuationBySource(code, dataSource = 1) {
     };
 
     const onTimeout = () => {
-      fundDebugLog('fetchFundValuationBySource gz timeout', { code: c, timeoutMs: 8000 });
+      fundDebugLog('fetchFundValuationBySource gz timeout', { code: c, timeoutMs: 5000 });
       cleanupScript();
-      trySupabaseFallback(new Error('gz timeout'));
+      safeReject(new Error('gz timeout'));
     };
 
     const timer = setTimeout(onTimeout, 5000);
@@ -510,7 +537,7 @@ export async function fetchFundValuationBySource(code, dataSource = 1) {
         cleanupScript();
 
         if (!json || !isObject(json)) {
-          trySupabaseFallback(new Error('invalid json'));
+          safeReject(new Error('invalid json'));
           return;
         }
 
@@ -526,14 +553,14 @@ export async function fetchFundValuationBySource(code, dataSource = 1) {
       },
       onError: (e) => {
         cleanupScript();
-        trySupabaseFallback(e || new Error('gz error callback'));
+        safeReject(e || new Error('gz error callback'));
       }
     });
 
     scriptGz.onerror = () => {
       fundDebugLog('fetchFundValuationBySource gz script error', { code: c, url: gzUrl });
       cleanupScript();
-      trySupabaseFallback(new Error('gz script error'));
+      safeReject(new Error('gz script error'));
     };
 
     document.body.appendChild(scriptGz);
@@ -586,7 +613,6 @@ export const fetchFundData = async (c, overrideDataSource) => {
 
   let dataSource = overrideDataSource || 1;
   let storedName = null;
-  let storedValuationSource = null;
   if (!overrideDataSource) {
     try {
       const arr = storageStore.getItem('funds', []);
@@ -595,7 +621,6 @@ export const fetchFundData = async (c, overrideDataSource) => {
         if (f) {
           if (f.dataSource) dataSource = f.dataSource;
           if (f.name) storedName = f.name;
-          if (f.valuationSource) storedValuationSource = f.valuationSource;
         }
       }
     } catch (e) {}
@@ -628,16 +653,7 @@ export const fetchFundData = async (c, overrideDataSource) => {
   });
 
   // 2. 发起估值请求
-  // 对于已知 valuationSource 为 supabase_qdii 的基金（dataSource=1），直接走 Supabase 查询，
-  // 避免 fundgz JSONP 对 QDII 基金无响应导致等待超时
-  const gzPromise =
-    storedValuationSource === 'supabase_qdii' && normalizeValuationDataSource(dataSource) === 1
-      ? fetchQdiiValuationFromSupabase(code).then((qdii) => {
-          if (qdii) return { code, ...qdii, gsz: null };
-          // Supabase 无数据时回退到常规流程
-          return fetchFundValuationBySource(code, dataSource);
-        })
-      : fetchFundValuationBySource(code, dataSource);
+  const gzPromise = fetchFundValuationBySource(code, dataSource);
 
   // 3. 编排并合并数据
   return new Promise(async (resolve, reject) => {

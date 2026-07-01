@@ -240,6 +240,20 @@ From `env.example`:
 - Node version in workflow is 20.
 - `next.config.js` uses static export and unoptimized images.
 
+## WORKFLOWS
+
+There are two workflow scopes:
+
+- **Project-private workflows** live in `docs/workflows/`. Use these when the task is specific to this repository.
+- **Shared agent workflows** live next to this project at `../agent-workflows/` (`/Users/apple/stockAI/agent-workflows/`). Use these for common agent procedures across projects.
+
+Use the more specific project-private workflow when both scopes could apply.
+
+Available workflows:
+
+- `docs/workflows/upstream-sync-workflow.md` — use for every upstream sync from `download/real-time-fund`: confirm the current anchor, inspect/pull upstream, diff the upstream range, map changes to the refactored architecture, write/review a migration plan, implement only after confirmation, verify, then advance the anchor.
+- `../agent-workflows/code-commit.md` — use whenever the user asks to commit/submit/record completed work: inspect the worktree, verify relevant changes, stage only task-related files, and write a complete commit message.
+
 ## UPSTREAM SYNC
 
 - Upstream working copy lives at `download/real-time-fund`.
@@ -256,7 +270,7 @@ feat：发布 2.3.3
 - The 2.3.3 range `2e14d9e..be17676` was ported on 2026-06-29 (see `doc/upstream-sync-be17676-checklist.md`): QDII data source 4 (explicit source `4` + `isQdiiFund`, tag-gated `storageStore` migration replacing the implicit source-1 Supabase fallback), table pagination, cloud sort-personalization apply fix, auto-source login guard, trading-day NAV-update logic, T+2 daily-profit basis (`navUpdatedAt`/`profitBasisDate`), PC chart tooltip opacity, group-dropdown scroll behavior, and the v2.3.3 release. Table pagination (Task 4) still needs in-browser verification of drag/reorder, cross-page batch select, and iOS Safari input zoom.
 - Safari input zoom: inputs used on mobile should have a computed font-size of at least 16px. When using Tailwind arbitrary sizes in CSS that passes through pxtorem, use `text-[16PX]` for small pagination/settings inputs that must not trigger iOS Safari zoom.
 - The original baseline `ffaf4b0` was verified by comparing 190 project files from the repo's first commit `be6cfa5` against `download/real-time-fund` (excluding AI/IDE/docs noise): `190/190` matching blobs.
-- Future upstream update workflow: compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, then port relevant changes into the current refactored architecture.
+- Future upstream update workflow: follow `docs/workflows/upstream-sync-workflow.md`. Compare `download/real-time-fund` latest commit against the recorded baseline commit, analyze the diff, write/review a plan, then port relevant changes into the current refactored architecture only after confirmation.
 - Do not directly copy upstream files over current files; current project has route-backed tabs, `AppShell`, split fund services, feature hooks, unified `storageStore`, and split CSS.
 - After successfully porting upstream changes, update `doc/upstream-sync.md` and this baseline only when the current project has fully absorbed that upstream range.
 
@@ -273,6 +287,8 @@ feat：发布 2.3.3
 - `doc/refactor-regression-checklist.md` — manual regression checklist.
 - `doc/storage-snapshot-scenarios.md` — storage snapshot scenarios.
 - `doc/upstream-sync.md` — upstream baseline commit and sync workflow.
+- `docs/workflows/` — project-private workflows for this repository.
+- `../agent-workflows/` — shared agent workflows used across sibling projects.
 - `docs/plans/2026-06-17-preserve-ui-refactor.md` — source refactor plan.
 - `docs/plans/2026-06-17-preserve-ui-refactor-execution-steps.md` — execution runbook.
 
